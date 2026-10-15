@@ -1,0 +1,14 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Write a Review — {{ product.name }}{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1>Review: {{ product.name }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn--primary">Submit Review</button>
+    </form>
+</section>
+{% endblock %}

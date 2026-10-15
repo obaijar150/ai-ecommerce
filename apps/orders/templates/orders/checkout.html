@@ -1,0 +1,53 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Checkout — AI E-Commerce{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1 class="section__title">Checkout</h1>
+    <div style="display: grid; grid-template-columns: 1fr 400px; gap: var(--space-2xl);">
+        <div>
+            <h3 style="margin-bottom: var(--space-md);">Order Summary</h3>
+            {% for item in cart_items %}
+            <div class="card mb-1" style="padding: var(--space-md); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h4 style="margin: 0;">{{ item.product.name }}</h4>
+                    <p class="text-muted" style="font-size: 0.85rem; margin: 0;">Qty: {{ item.quantity }} x ${{ item.product.current_price }}</p>
+                </div>
+                <p style="font-weight: 600;">${{ item.product.current_price|floatformat:2 }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="card" style="position: sticky; top: calc(var(--header-height) + var(--space-md));">
+            <h3 style="margin-bottom: var(--space-lg);">Payment Details</h3>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                <span>Subtotal</span>
+                <span>${{ subtotal|floatformat:2 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                <span>Shipping</span>
+                <span>{% if shipping_cost == 0 %}Free{% else %}${{ shipping_cost|floatformat:2 }}{% endif %}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-md);">
+                <span>Tax (8%)</span>
+                <span>${{ tax|floatformat:2 }}</span>
+            </div>
+            <hr style="margin: var(--space-md) 0; border-color: var(--color-gray-100);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
+                <strong style="font-size: 1.1rem;">Total</strong>
+                <strong style="font-size: 1.5rem; color: var(--color-primary);">${{ total|floatformat:2 }}</strong>
+            </div>
+            <button class="btn btn--primary btn--full" style="padding: var(--space-md); font-size: 1rem;">🔒 Place Order Securely</button>
+            <p class="text-muted text-center mt-1" style="font-size: 0.75rem;">Payment processing will be integrated in Phase 3.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns: 1fr 400px"] { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}

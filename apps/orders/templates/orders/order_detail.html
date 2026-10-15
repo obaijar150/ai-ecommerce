@@ -1,0 +1,67 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Order #{{ order.id|truncatechars:8 }} — AI E-Commerce{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-xl); flex-wrap: wrap; gap: var(--space-md);">
+        <h1 class="section__title" style="margin: 0;">Order #{{ order.id|truncatechars:8 }}</h1>
+        <span class="badge badge--{{ order.status }}" style="font-size: 0.85rem; padding: var(--space-sm) var(--space-md);">{{ order.get_status_display }}</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 300px; gap: var(--space-xl);">
+        <div>
+            <h3 style="margin-bottom: var(--space-md);">Items</h3>
+            {% for item in order.items.all %}
+            <div class="card mb-1" style="padding: var(--space-md);">
+                <div style="display: flex; justify-content: space-between;">
+                    <div>
+                        <h4 style="margin: 0;">{{ item.product.name|default:"Product removed" }}</h4>
+                        <p class="text-muted" style="font-size: 0.85rem;">Qty: {{ item.quantity }} x ${{ item.unit_price }}</p>
+                    </div>
+                    <strong>${{ item.total_price|floatformat:2 }}</strong>
+                </div>
+            </div>
+            {% endfor %}
+
+            <h3 class="mt-2" style="margin-bottom: var(--space-md);">Order Timeline</h3>
+            {% for history in order.status_history.all %}
+            <div class="mb-1" style="display: flex; gap: var(--space-md); align-items: center;">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary);"></span>
+                <div>
+                    <p style="margin: 0; font-weight: 500;">{{ history.get_status_display|default:history.status }}</p>
+                    <p class="text-muted" style="font-size: 0.8rem; margin: 0;">{{ history.created_at|date }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="card" style="height: fit-content; position: sticky; top: calc(var(--header-height) + var(--space-md));">
+            <h3 style="margin-bottom: var(--space-md);">Summary</h3>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                <span>Subtotal</span><span>${{ order.subtotal|floatformat:2 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                <span>Shipping</span><span>${{ order.shipping_cost|floatformat:2 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-md);">
+                <span>Tax</span><span>${{ order.tax|floatformat:2 }}</span>
+            </div>
+            <hr style="margin: var(--space-md) 0; border-color: var(--color-gray-100);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>Total</strong>
+                <strong style="font-size: 1.25rem; color: var(--color-primary);">${{ order.total|floatformat:2 }}</strong>
+            </div>
+            <a href="{% url 'orders:order_list' %}" class="btn btn--outline btn--full mt-2">← Back to Orders</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns: 1fr 300px"] { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}

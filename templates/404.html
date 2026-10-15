@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block title %}Page Not Found — AI E-Commerce{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h1>404</h1>
+    <p>The page you're looking for doesn't exist.</p>
+    <a href="{% url 'catalog:home' %}" class="btn btn--primary">Go Home</a>
+</div>
+{% endblock %}

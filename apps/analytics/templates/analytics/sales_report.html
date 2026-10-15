@@ -1,0 +1,33 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Sales Report — AI E-Commerce Admin{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1>Sales Report (Last 30 Days)</h1>
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Orders</th>
+                    <th>Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for day in daily_sales %}
+                <tr>
+                    <td>{{ day.date }}</td>
+                    <td>{{ day.order_count }}</td>
+                    <td>${{ day.total_sales|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No sales data for this period.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

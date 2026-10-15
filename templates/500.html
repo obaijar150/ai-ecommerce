@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Error — AI E-Commerce{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h1>500</h1>
+    <p>Something went wrong on our end. Please try again later.</p>
+    <a href="{% url 'catalog:home' %}" class="btn btn--primary">Go Home</a>
+</div>
+{% endblock %}

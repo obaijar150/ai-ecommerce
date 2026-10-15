@@ -1,0 +1,21 @@
+{% load static %}
+<header class="site-header">
+    <nav class="nav">
+        <a href="{% url 'catalog:home' %}" class="nav__logo">
+            <span style="color: var(--color-primary)">⚡</span> AI E-Commerce
+        </a>
+        <div class="nav__links">
+            <a href="{% url 'catalog:product_list' %}" class="nav__link">Products</a>
+            <a href="{% url 'search:search_results' %}" class="nav__link">Search</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'orders:cart' %}" class="nav__link">Cart</a>
+                <a href="{% url 'orders:order_list' %}" class="nav__link">Orders</a>
+                <a href="{% url 'accounts:profile' %}" class="nav__link">Hello, {{ user.username }}</a>
+                <a href="{% url 'accounts:logout' %}" class="nav__link nav__link--cta" style="background: var(--color-gray-700);">Logout</a>
+            {% else %}
+                <a href="{% url 'accounts:login' %}" class="nav__link">Sign In</a>
+                <a href="{% url 'accounts:register' %}" class="nav__link nav__link--cta">Get Started</a>
+            {% endif %}
+        </div>
+    </nav>
+</header>

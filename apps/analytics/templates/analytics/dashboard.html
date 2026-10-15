@@ -1,0 +1,42 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Dashboard — AI E-Commerce Admin{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1>Admin Dashboard</h1>
+
+    <div class="stats-grid">
+        <div class="card stat">
+            <h3>Total Revenue</h3>
+            <p class="stat__value">${{ total_revenue|floatformat:2 }}</p>
+        </div>
+        <div class="card stat">
+            <h3>Monthly Revenue</h3>
+            <p class="stat__value">${{ monthly_revenue|floatformat:2 }}</p>
+        </div>
+        <div class="card stat">
+            <h3>Weekly Orders</h3>
+            <p class="stat__value">{{ weekly_orders }}</p>
+        </div>
+        <div class="card stat">
+            <h3>Total Products</h3>
+            <p class="stat__value">{{ total_products }}</p>
+        </div>
+    </div>
+
+    <h2 class="mt-2">Popular Products</h2>
+    <div class="card">
+        {% for product in popular_products %}
+        <p>{{ product.name }} — {{ product.view_count }} views</p>
+        {% endfor %}
+    </div>
+
+    <h2 class="mt-2">Recent Orders</h2>
+    {% for order in recent_orders %}
+    <div class="card">
+        <p>Order #{{ order.id|truncatechars:8 }} — {{ order.user.username }}: ${{ order.total|floatformat:2 }} ({{ order.get_status_display }})</p>
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}

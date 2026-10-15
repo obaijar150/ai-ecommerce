@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+<div class="container">
+    {% block store_content %}{% endblock %}
+</div>
+{% include 'includes/footer.html' %}
+{% endblock %}

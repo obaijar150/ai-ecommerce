@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div style="position: absolute; top: var(--space-md); left: var(--space-lg);">
+    <a href="{% url 'catalog:home' %}" class="btn btn--outline" style="font-size: 0.85rem; padding: var(--space-xs) var(--space-md);">← Back to Home</a>
+</div>
+<div class="auth-container">
+    <div class="auth-card">
+        <h1 class="auth-title">AI E-Commerce</h1>
+        {% block auth_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

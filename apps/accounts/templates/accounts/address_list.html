@@ -1,0 +1,19 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Addresses — AI E-Commerce{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1>Your Addresses</h1>
+    <a href="{% url 'accounts:address_add' %}" class="btn btn--primary mb-1">Add New Address</a>
+    {% for address in addresses %}
+    <div class="card">
+        <h3>{{ address.label }}</h3>
+        <p>{{ address.street }}, {{ address.city }}, {{ address.state }} {{ address.postal_code }}, {{ address.country }}</p>
+        <a href="{% url 'accounts:address_edit' address.pk %}" class="btn btn--outline">Edit</a>
+    </div>
+    {% empty %}
+    <p>No addresses saved yet.</p>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Reviews — {{ product.name }}{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1>Reviews for {{ product.name }}</h1>
+    {% for review in reviews %}
+    <div class="card review">
+        <h3>{{ review.rating }}★ — {{ review.title }}</h3>
+        <p>{{ review.body }}</p>
+        <p class="text-muted">By {{ review.user.username }} on {{ review.created_at|date }}</p>
+    </div>
+    {% empty %}
+    <p>No reviews yet.</p>
+    {% endfor %}
+</section>
+{% endblock %}

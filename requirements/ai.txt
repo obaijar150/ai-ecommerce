@@ -1,0 +1,9 @@
+# AI / ML / NLP dependencies — install separately after base
+# These packages may require platform-specific wheels
+# All are free and open-source with permissive licenses
+
+scikit-learn==1.6.1
+scikit-surprise==1.1.4
+nltk==3.9.1
+numpy==2.2.6
+pandas==2.2.3

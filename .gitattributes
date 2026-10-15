@@ -1,0 +1,31 @@
+# Auto-detect text files and normalize line endings to LF
+* text=auto
+
+# Explicitly declare text files
+*.py text
+*.html text
+*.css text
+*.js text
+*.json text
+*.md text
+*.txt text
+*.yml text
+*.yaml text
+*.toml text
+*.ini text
+*.cfg text
+*.env* text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pkl binary
+*.joblib binary

@@ -1,0 +1,41 @@
+{% extends 'base_store.html' %}
+{% load static %}
+
+{% block title %}Wishlist — AI E-Commerce{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1 class="section__title">Your Wishlist</h1>
+    {% if wishlist_items %}
+    <div class="product-grid">
+        {% for item in wishlist_items %}
+        <article class="product-card">
+            {% if item.product.images.first %}
+            <img src="{{ item.product.images.first.image.url }}" alt="{{ item.product.name }}" class="product-card__image">
+            {% else %}
+            <div class="product-card__image"></div>
+            {% endif %}
+            <div class="product-card__body">
+                <h3 class="product-card__title"><a href="{{ item.product.get_absolute_url }}">{{ item.product.name }}</a></h3>
+                {% if item.product.average_rating > 0 %}
+                <p class="product-card__rating">★ {{ item.product.average_rating }}</p>
+                {% endif %}
+                <p class="product-card__price">
+                    {% if item.product.sale_price %}<s>${{ item.product.price }}</s>{% endif %}
+                    ${{ item.product.current_price }}
+                </p>
+                <p class="text-muted" style="font-size: 0.8rem;">Added {{ item.added_at|date }}</p>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card text-center" style="padding: var(--space-3xl);">
+        <p style="font-size: 3rem; margin-bottom: var(--space-md);">❤️</p>
+        <h3>Your wishlist is empty</h3>
+        <p class="text-muted">Save items you love and they'll appear here</p>
+        <a href="{% url 'catalog:product_list' %}" class="btn btn--primary mt-2">Discover Products</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

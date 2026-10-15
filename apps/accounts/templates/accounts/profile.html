@@ -1,0 +1,71 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Profile — AI E-Commerce{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1 class="section__title">Your Profile</h1>
+    <div class="card" style="max-width: 600px;">
+        <div style="display: flex; align-items: center; gap: var(--space-xl); margin-bottom: var(--space-xl); flex-wrap: wrap;">
+            <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-primary-bg); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--color-primary); font-weight: 700;">
+                {{ profile.user.username|first|upper }}
+            </div>
+            <div>
+                <h2 style="margin: 0;">{{ profile.user.username }}</h2>
+                <p class="text-muted" style="margin: 0;">Member since {{ profile.user.date_joined|date }}</p>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+            <div>
+                <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0;">Email</p>
+                <p style="font-weight: 500;">{{ profile.user.email }}</p>
+            </div>
+            <div>
+                <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0;">Phone</p>
+                <p style="font-weight: 500;">{{ profile.phone|default:"Not set" }}</p>
+            </div>
+            <div>
+                <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0;">Date of Birth</p>
+                <p style="font-weight: 500;">{{ profile.date_of_birth|default:"Not set" }}</p>
+            </div>
+            <div>
+                <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0;">Newsletter</p>
+                <p style="font-weight: 500;">
+                    {% if profile.newsletter_subscribed %}
+                    <span class="badge badge--success">Subscribed</span>
+                    {% else %}
+                    <span class="badge badge--default">Not subscribed</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% if profile.bio %}
+        <div style="margin-top: var(--space-md);">
+            <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0;">Bio</p>
+            <p>{{ profile.bio }}</p>
+        </div>
+        {% endif %}
+        <a href="{% url 'accounts:profile_edit' %}" class="btn btn--primary mt-2">Edit Profile</a>
+    </div>
+</section>
+
+<section class="section">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-lg);">
+        <a href="{% url 'accounts:address_list' %}" class="card" style="text-align: center; color: var(--color-dark);">
+            <p style="font-size: 2rem; margin-bottom: var(--space-sm);">📍</p>
+            <h3 style="margin: 0;">Addresses</h3>
+            <p class="text-muted" style="font-size: 0.85rem; margin: 0;">Manage shipping addresses</p>
+        </a>
+        <a href="{% url 'accounts:wishlist' %}" class="card" style="text-align: center; color: var(--color-dark);">
+            <p style="font-size: 2rem; margin-bottom: var(--space-sm);">❤️</p>
+            <h3 style="margin: 0;">Wishlist</h3>
+            <p class="text-muted" style="font-size: 0.85rem; margin: 0;">View saved items</p>
+        </a>
+        <a href="{% url 'orders:order_list' %}" class="card" style="text-align: center; color: var(--color-dark);">
+            <p style="font-size: 2rem; margin-bottom: var(--space-sm);">📦</p>
+            <h3 style="margin: 0;">Orders</h3>
+            <p class="text-muted" style="font-size: 0.85rem; margin: 0;">View order history</p>
+        </a>
+    </div>
+</section>
+{% endblock %}

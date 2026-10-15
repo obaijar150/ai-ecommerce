@@ -1,0 +1,6 @@
+# Production dependencies
+-r base.txt
+
+sentry-sdk==2.2.0
+django-storages==1.14.3
+boto3==1.34.108

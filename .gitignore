@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Environment Variables — NEVER commit secrets
+.env
+.env.local
+.env.production
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+local_settings.py
+
+# Media uploads
+media/
+!media/.gitkeep
+
+# Static files collected
+staticfiles/
+!staticfiles/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Docker
+docker-compose.override.yml
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# AI Models
+models/*.pkl
+models/*.joblib
+models/*.bin
+!models/.gitkeep
+
+# Node (if any tooling)
+node_modules/

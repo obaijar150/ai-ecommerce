@@ -1,0 +1,38 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Edit Profile — AI E-Commerce{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1 class="section__title">Edit Profile</h1>
+    <form method="post" enctype="multipart/form-data" class="card" style="max-width: 600px;">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Phone</label>
+            {{ form.phone }}
+        </div>
+        <div class="form-group">
+            <label>Avatar</label>
+            {{ form.avatar }}
+        </div>
+        <div class="form-group">
+            <label>Bio</label>
+            {{ form.bio }}
+        </div>
+        <div class="form-group">
+            <label>Date of Birth</label>
+            {{ form.date_of_birth }}
+        </div>
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: var(--space-sm); cursor: pointer;">
+                {{ form.newsletter_subscribed }}
+                <span>Subscribe to newsletter for exclusive deals and updates</span>
+            </label>
+        </div>
+        <div style="display: flex; gap: var(--space-md);">
+            <button type="submit" class="btn btn--primary">Save Changes</button>
+            <a href="{% url 'accounts:profile' %}" class="btn btn--outline">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

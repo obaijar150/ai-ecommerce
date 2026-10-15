@@ -1,0 +1,33 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Your Orders — AI E-Commerce{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <h1 class="section__title">Your Orders</h1>
+    {% if orders %}
+        {% for order in orders %}
+        <div class="card mb-1">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md);">
+                <div>
+                    <h3 style="margin: 0;">Order #{{ order.id|truncatechars:8 }}</h3>
+                    <p class="text-muted" style="font-size: 0.85rem; margin: 0;">{{ order.created_at|date }} — {{ order.items.count }} item(s)</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-md);">
+                    <span class="badge badge--{{ order.status }}">{{ order.get_status_display }}</span>
+                    <strong style="font-size: 1.1rem; color: var(--color-primary);">${{ order.total|floatformat:2 }}</strong>
+                    <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn--outline">View</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card text-center" style="padding: var(--space-3xl);">
+            <p style="font-size: 3rem; margin-bottom: var(--space-md);">📦</p>
+            <h3>No orders yet</h3>
+            <p class="text-muted">Your order history will appear here once you make a purchase</p>
+            <a href="{% url 'catalog:product_list' %}" class="btn btn--primary mt-2">Start Shopping</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

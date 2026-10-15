@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block title %}Service Unavailable — AI E-Commerce{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h1>503</h1>
+    <p>Service is temporarily unavailable. Please try again later.</p>
+    <a href="{% url 'catalog:home' %}" class="btn btn--primary">Go Home</a>
+</div>
+{% endblock %}
