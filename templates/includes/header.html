@@ -7,6 +7,7 @@
         <div class="nav__links">
             <a href="{% url 'catalog:product_list' %}" class="nav__link">Products</a>
             <a href="{% url 'search:search_results' %}" class="nav__link">Search</a>
+            <a href="{% url 'ai_engine:chat' %}" class="nav__link">AI Assistant</a>
             <a href="{% url 'orders:cart' %}" class="nav__link">
                 Cart{% if cart_item_count %} <span class="badge badge--primary">{{ cart_item_count }}</span>{% endif %}
             </a>
