@@ -66,5 +66,10 @@ models/*.joblib
 models/*.bin
 !models/.gitkeep
 
+# AI Engine artifacts (trained models, embedding indexes, datasets)
+ai_artifacts/
+apps/ai_engine/ml/**/*.joblib
+
+
 # Node (if any tooling)
 node_modules/

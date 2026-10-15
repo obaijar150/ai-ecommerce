@@ -286,6 +286,21 @@ AI_CHATBOT_MODEL_PATH = BASE_DIR / env("AI_CHATBOT_MODEL_PATH", default="models/
 AI_NLP_MODEL_NAME = env("AI_NLP_MODEL_NAME", default="distilbart-cnn-12-6")
 AI_SUMMARY_MAX_LENGTH = env("AI_SUMMARY_MAX_LENGTH", default=150)
 
+# Artifacts (trained models / embedding indexes) live outside version control.
+AI_ARTIFACTS_DIR = BASE_DIR / env("AI_ARTIFACTS_DIR", default="ai_artifacts")
+# Embedding backend: "tfidf" (deterministic, always available) or the optional
+# "sentence-transformers" pretrained model (needs PyTorch; falls back offline).
+AI_EMBEDDING_BACKEND = env("AI_EMBEDDING_BACKEND", default="tfidf")
+AI_EMBEDDING_MODEL_NAME = env(
+    "AI_EMBEDDING_MODEL_NAME", default="sentence-transformers/all-MiniLM-L6-v2"
+)
+# Optional local LLM runtime (Ollama). Disabled by default; never cloud inference.
+AI_LLM_ENABLED = env("AI_LLM_ENABLED", default="false").lower() in {"1", "true", "yes"}
+AI_LLM_BACKEND = env("AI_LLM_BACKEND", default="ollama")
+OLLAMA_BASE_URL = env("OLLAMA_BASE_URL", default="http://localhost:11434")
+OLLAMA_MODEL = env("OLLAMA_MODEL", default="qwen2.5:0.5b")
+
+
 # ── Payments & Pricing ───────────────────────────────────────
 # Only free/mock providers are supported. No real card data is ever stored.
 PAYMENT_PROVIDER = env("PAYMENT_PROVIDER")
