@@ -1,0 +1,78 @@
+{% extends 'base_store.html' %}
+{% load static %}
+
+{% block title %}{{ category.name }} — AI E-Commerce{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'catalog/css/catalog.css' %}">
+{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <nav class="text-muted mb-1" aria-label="Breadcrumb" style="font-size:0.85rem;">
+        <a href="{% url 'catalog:product_list' %}">Products</a>
+        {% if category.parent %} / <a href="{{ category.parent.get_absolute_url }}">{{ category.parent.name }}</a>{% endif %}
+        / <span>{{ category.name }}</span>
+    </nav>
+
+    <h1 class="section__title">{{ category.name }}</h1>
+    {% if category.description %}<p class="text-muted">{{ category.description }}</p>{% endif %}
+
+    {% if subcategories %}
+    <div class="subcategory-chips">
+        {% for sub in subcategories %}
+        <a href="{{ sub.get_absolute_url }}" class="chip">{{ sub.name }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="catalog-toolbar">
+        <span class="catalog-count">
+            {{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }}
+        </span>
+        <form method="get" style="display:flex; gap: var(--space-sm); align-items:center;">
+            <label for="category-sort" class="text-muted" style="font-size:0.85rem;">Sort</label>
+            <select id="category-sort" name="sort" class="filter-select" onchange="this.form.submit()">
+                <option value="newest" {% if active_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                <option value="price" {% if active_sort == 'price' %}selected{% endif %}>Price: Low to High</option>
+                <option value="-price" {% if active_sort == '-price' %}selected{% endif %}>Price: High to Low</option>
+                <option value="name" {% if active_sort == 'name' %}selected{% endif %}>Name: A–Z</option>
+                <option value="rating" {% if active_sort == 'rating' %}selected{% endif %}>Highest Rated</option>
+            </select>
+        </form>
+    </div>
+
+    {% if products %}
+    <div class="product-grid">
+        {% for product in products %}
+            {% include 'catalog/includes/product_card.html' with product=product %}
+        {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <nav class="pagination" aria-label="Pagination">
+        {% if page_obj.has_previous %}
+        <a class="pagination__link" href="?{{ query_params }}{% if query_params %}&{% endif %}page={{ page_obj.previous_page_number }}">‹ Prev</a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+            <span class="pagination__current">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a class="pagination__link" href="?{{ query_params }}{% if query_params %}&{% endif %}page={{ num }}">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a class="pagination__link" href="?{{ query_params }}{% if query_params %}&{% endif %}page={{ page_obj.next_page_number }}">Next ›</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state card">
+        <p class="empty-state__icon" aria-hidden="true">📦</p>
+        <h2>No products in this category yet</h2>
+        <a href="{% url 'catalog:product_list' %}" class="btn btn--primary mt-2">Browse All Products</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

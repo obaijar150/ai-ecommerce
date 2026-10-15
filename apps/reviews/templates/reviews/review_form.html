@@ -1,14 +1,39 @@
 {% extends 'base_store.html' %}
+{% load static %}
 
 {% block title %}Write a Review — {{ product.name }}{% endblock %}
 
 {% block store_content %}
-<section class="section">
-    <h1>Review: {{ product.name }}</h1>
-    <form method="post">
+<section class="section" style="max-width: 640px; margin: 0 auto;">
+    <nav class="text-muted mb-1" aria-label="Breadcrumb" style="font-size:0.85rem;">
+        <a href="{% url 'catalog:product_detail' product.slug %}">{{ product.name }}</a> / Write a review
+    </nav>
+
+    <h1 class="section__title">Write a Review</h1>
+    <p class="text-muted mb-2">for <strong>{{ product.name }}</strong></p>
+
+    <form method="post" class="card" style="padding: var(--space-xl);">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn--primary">Submit Review</button>
+
+        {% if form.non_field_errors %}
+        <div class="messages__item messages__item--error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small class="text-muted">{{ field.help_text }}</small>{% endif %}
+            {% for error in field.errors %}
+            <p class="form-error">{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        <div style="display:flex; gap: var(--space-sm); flex-wrap: wrap;">
+            <button type="submit" class="btn btn--primary">Submit Review</button>
+            <a href="{% url 'catalog:product_detail' product.slug %}" class="btn btn--outline">Cancel</a>
+        </div>
     </form>
 </section>
 {% endblock %}

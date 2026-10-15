@@ -125,10 +125,23 @@ Interactive API docs are available at:
 http://127.0.0.1:8000/api/docs/
 ```
 
+## Sample Data
+
+Populate the catalog with sample categories, brands, products, images and
+inventory for local development:
+
+```powershell
+python manage.py seed_catalog          # create sample data
+python manage.py seed_catalog --flush  # wipe catalog data first, then seed
+```
+
+The command generates placeholder product images in memory, so no binary
+assets need to be committed.
+
 ## Testing
 
 ```powershell
-# Run all tests
+# Run all tests (settings are configured in pytest.ini)
 pytest
 
 # Run with coverage

@@ -1,11 +1,38 @@
 """
-Catalog views: product listing, detail, category pages.
+Catalog views: homepage, product listing (filter/sort/search/paginate),
+product detail, and category pages.
 """
 
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, render
 from django.views.generic import DetailView, ListView
 
-from .models import Category, Product
+from .models import Brand, Category, Product, ProductImage
+
+
+# Valid sort keys mapped to ORM order_by expressions. ``effective_price`` is
+# supplied by ProductQuerySet.with_effective_price().
+VALID_SORT_FIELDS = {
+    "newest": "-created_at",
+    "price": "effective_price",
+    "-price": "-effective_price",
+    "name": "name",
+    "-name": "-name",
+    "rating": "-average_rating",
+    "popular": "-view_count",
+}
+
+PAGE_SIZE = 12
+
+
+def _base_product_queryset():
+    """Return the standard annotated/related-loaded product queryset."""
+    return (
+        Product.objects.active()
+        .with_effective_price()
+        .select_related("category", "brand")
+        .prefetch_related("images", "tags")
+    )
 
 
 class HomePageView(ListView):
@@ -16,36 +43,142 @@ class HomePageView(ListView):
     context_object_name = "products"
 
     def get_queryset(self):
-        return Product.objects.filter(is_active=True, is_featured=True)[:8]
+        return (
+            _base_product_queryset()
+            .filter(is_featured=True)
+            .order_by("-created_at")[:8]
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.filter(is_active=True, parent=None)
-        context["recent_products"] = Product.objects.filter(is_active=True).order_by(
-            "-created_at"
-        )[:8]
+        context["recent_products"] = _base_product_queryset().order_by("-created_at")[:8]
+        context["featured_brands"] = Brand.objects.filter(is_active=True)[:6]
         return context
 
 
+def filter_products(request):
+    """Build the filtered/sorted product queryset from request GET params.
+
+    Kept as a standalone function so both the list view and the category
+    detail view share identical filtering behaviour.
+
+    Args:
+        request: The current HTTP request.
+
+    Returns:
+        A tuple of (queryset, sort_key).
+    """
+    queryset = _base_product_queryset()
+
+    # Category filter — include products in child (sub)categories too.
+    category_slug = request.GET.get("category", "").strip()
+    if category_slug:
+        category = Category.objects.filter(slug=category_slug).first()
+        if category:
+            category_ids = [c.id for c in category.get_descendants(include_self=True)]
+            queryset = queryset.filter(category_id__in=category_ids)
+
+    # Brand filter.
+    brand_slug = request.GET.get("brand", "").strip()
+    if brand_slug:
+        queryset = queryset.filter(brand__slug=brand_slug)
+
+    # Tag filter.
+    tag_slug = request.GET.get("tag", "").strip()
+    if tag_slug:
+        queryset = queryset.filter(tags__slug=tag_slug)
+
+    # Keyword search.
+    query = request.GET.get("q", "").strip()
+    if query:
+        queryset = queryset.search(query)
+
+    # Price range (database-level via the effective_price annotation).
+    min_price = request.GET.get("min_price", "").strip()
+    if min_price:
+        try:
+            queryset = queryset.filter(effective_price__gte=float(min_price))
+        except ValueError:
+            pass
+
+    max_price = request.GET.get("max_price", "").strip()
+    if max_price:
+        try:
+            queryset = queryset.filter(effective_price__lte=float(max_price))
+        except ValueError:
+            pass
+
+    # In-stock only.
+    if request.GET.get("in_stock"):
+        queryset = queryset.filter(stock_quantity__gt=0)
+
+    # Sorting.
+    sort_key = request.GET.get("sort", "newest")
+    queryset = queryset.order_by(VALID_SORT_FIELDS.get(sort_key, "-created_at"))
+
+    return queryset, sort_key
+
+
 class ProductListView(ListView):
-    """Product listing with filtering by category."""
+    """Product listing with filtering, sorting, and pagination."""
 
     model = Product
     template_name = "catalog/product_list.html"
     context_object_name = "products"
-    paginate_by = 12
+    paginate_by = PAGE_SIZE
 
     def get_queryset(self):
-        return Product.objects.filter(is_active=True).select_related("category")
+        queryset, self._sort_key = filter_products(self.request)
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.filter(is_active=True, parent=None)
+        context["brands"] = Brand.objects.filter(is_active=True)
+        context["active_sort"] = getattr(self, "_sort_key", "newest")
+        context["query"] = self.request.GET.get("q", "").strip()
+        context["total_count"] = context["paginator"].count if context.get("paginator") else len(context["products"])
+        context["query_params"] = self._query_params_excluding_page()
+        return context
+
+    def _query_params_excluding_page(self) -> str:
+        """Return the GET query string without the ``page`` parameter."""
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        return params.urlencode()
+
+
+class CategoryDetailView(ListView):
+    """Products within a single category (and its subcategories)."""
+
+    model = Product
+    template_name = "catalog/category_detail.html"
+    context_object_name = "products"
+    paginate_by = PAGE_SIZE
+
+    def get_queryset(self):
+        self.category = get_object_or_404(
+            Category, slug=self.kwargs["slug"], is_active=True
+        )
+        category_ids = [c.id for c in self.category.get_descendants(include_self=True)]
+        queryset, self._sort_key = filter_products(self.request)
+        return queryset.filter(category_id__in=category_ids)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["category"] = self.category
+        context["subcategories"] = self.category.children.filter(is_active=True)
+        context["brands"] = Brand.objects.filter(is_active=True)
+        context["active_sort"] = getattr(self, "_sort_key", "newest")
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        context["query_params"] = params.urlencode()
         return context
 
 
 class ProductDetailView(DetailView):
-    """Single product page with images, reviews, and recommendations."""
+    """Single product page with image gallery, specs, and reviews."""
 
     model = Product
     template_name = "catalog/product_detail.html"
@@ -53,22 +186,43 @@ class ProductDetailView(DetailView):
     slug_url_kwarg = "slug"
 
     def get_queryset(self):
-        return Product.objects.filter(is_active=True).prefetch_related(
-            "images", "tags"
+        return (
+            Product.objects.active()
+            .with_effective_price()
+            .select_related("category", "brand")
+            .prefetch_related(
+                Prefetch("images", queryset=ProductImage.objects.order_by("-is_primary", "sort_order")),
+                "tags",
+            )
         )
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        # Increment view count
+        # Atomic-ish increment; acceptable for a view counter.
+        type(obj).objects.filter(pk=obj.pk).update(view_count=obj.view_count + 1)
         obj.view_count += 1
-        obj.save(update_fields=["view_count"])
         return obj
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         product = self.object
-        context["primary_image"] = product.images.filter(is_primary=True).first()
-        context["reviews"] = product.reviews.select_related("user").all()[:10]
+        context["images"] = product.images.all()
+        context["primary_image"] = product.primary_image
+        context["specifications"] = product.specifications or {}
+        context["reviews"] = product.reviews.select_related("user")[:10]
+
+        if product.category:
+            context["related_products"] = (
+                _base_product_queryset()
+                .filter(category=product.category)
+                .exclude(pk=product.pk)[:4]
+            )
+        if product.brand:
+            context["brand_products"] = (
+                _base_product_queryset()
+                .filter(brand=product.brand)
+                .exclude(pk=product.pk)[:4]
+            )
         return context
 
 

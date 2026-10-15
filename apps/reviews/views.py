@@ -1,15 +1,15 @@
 """
-Reviews views: create, list, mark helpful.
+Reviews views: create, list, and mark helpful.
 """
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView
 
-from django.db import models
-
 from apps.catalog.models import Product
+from apps.orders.models import OrderItem
 
 from .forms import ReviewForm
 from .models import Review
@@ -17,11 +17,15 @@ from .models import Review
 
 @login_required
 def review_create(request, product_slug: str):
-    """Create a product review."""
+    """Create a product review for the given product.
+
+    Prevents duplicate reviews (one per user per product) and recomputes the
+    product's rating aggregates after a successful save.
+    """
     product = get_object_or_404(Product, slug=product_slug, is_active=True)
 
-    # Check if user already reviewed this product
     if Review.objects.filter(product=product, user=request.user).exists():
+        messages.info(request, "You have already reviewed this product.")
         return redirect("catalog:product_detail", slug=product.slug)
 
     if request.method == "POST":
@@ -30,29 +34,21 @@ def review_create(request, product_slug: str):
             review = form.save(commit=False)
             review.product = product
             review.user = request.user
-            # Check for verified purchase
-            review.is_verified_purchase = product.orders.filter(
-                user=request.user
+            review.is_verified_purchase = OrderItem.objects.filter(
+                order__user=request.user, product=product
             ).exists()
             review.save()
-
-            # Update product rating aggregates
-            product.average_rating = product.reviews.aggregate(
-                avg_rating=models.Avg("rating")
-            )["avg_rating"] or 0
-            product.review_count = product.reviews.count()
-            product.save(update_fields=["average_rating", "review_count"])
-
+            product.refresh_rating()
+            messages.success(request, "Thanks! Your review has been posted.")
             return redirect("catalog:product_detail", slug=product.slug)
     else:
         form = ReviewForm()
 
-    context = {"form": form, "product": product}
-    return render(request, "reviews/review_form.html", context)
+    return render(request, "reviews/review_form.html", {"form": form, "product": product})
 
 
 class ReviewListView(ListView):
-    """List all reviews for a product."""
+    """List all reviews for a product, paginated."""
 
     model = Review
     template_name = "reviews/review_list.html"
@@ -60,21 +56,21 @@ class ReviewListView(ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        product = get_object_or_404(Product, slug=self.kwargs["product_slug"])
-        return Review.objects.filter(product=product).select_related("user")
+        self.product = get_object_or_404(Product, slug=self.kwargs["product_slug"])
+        return Review.objects.filter(product=self.product).select_related("user")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["product"] = get_object_or_404(
-            Product, slug=self.kwargs["product_slug"]
-        )
+        context["product"] = self.product
         return context
 
 
 @login_required
 def mark_helpful(request, review_id: int):
-    """Mark a review as helpful (AJAX endpoint)."""
+    """Mark a review as helpful (AJAX POST endpoint)."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
     review = get_object_or_404(Review, id=review_id)
+    Review.objects.filter(pk=review.pk).update(helpful_count=review.helpful_count + 1)
     review.helpful_count += 1
-    review.save(update_fields=["helpful_count"])
     return JsonResponse({"helpful_count": review.helpful_count})

@@ -3,36 +3,38 @@
 
 {% block title %}Home — AI E-Commerce{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'catalog/css/catalog.css' %}">
+{% endblock %}
+
 {% block store_content %}
 <section class="hero text-center">
     <h1>Welcome to <span style="color: var(--color-primary)">AI E-Commerce</span></h1>
     <p>Smart shopping powered by artificial intelligence</p>
-    <a href="{% url 'catalog:product_list' %}" class="btn btn--primary mt-2">Browse Products</a>
+    <form method="get" action="{% url 'catalog:product_list' %}" class="catalog-search" style="max-width: 560px; margin: 0 auto var(--space-lg);">
+        <input type="search" name="q" class="search-input" placeholder="Search products…" aria-label="Search products">
+        <button type="submit" class="btn btn--primary">Search</button>
+    </form>
+    <a href="{% url 'catalog:product_list' %}" class="btn btn--primary">Browse Products</a>
 </section>
 
+{% if categories %}
 <section class="section mt-3">
+    <h2 class="section__title">Shop by Category</h2>
+    <div class="subcategory-chips">
+        {% for category in categories %}
+        <a href="{{ category.get_absolute_url }}" class="chip">{{ category.name }}</a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="section">
     <h2 class="section__title">Featured Products</h2>
     {% if products %}
     <div class="product-grid">
         {% for product in products %}
-        <article class="product-card">
-            {% if product.images.first %}
-            <img src="{{ product.images.first.image.url }}" alt="{{ product.name }}" class="product-card__image">
-            {% else %}
-            <div class="product-card__image"></div>
-            {% endif %}
-            <div class="product-card__body">
-                <h3 class="product-card__title"><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
-                {% if product.average_rating > 0 %}
-                <p class="product-card__rating">★ {{ product.average_rating }} ({{ product.review_count }})</p>
-                {% endif %}
-                <p class="product-card__price">
-                    {% if product.sale_price %}<s>${{ product.price }}</s>{% endif %}
-                    ${{ product.current_price }}
-                    {% if product.sale_price %}<span class="product-card__badge">-{{ product.discount_percentage }}%</span>{% endif %}
-                </p>
-            </div>
-        </article>
+            {% include 'catalog/includes/product_card.html' with product=product %}
         {% endfor %}
     </div>
     {% else %}
@@ -41,31 +43,11 @@
 </section>
 
 <section class="section">
-    <h2 class="section__title">Categories</h2>
-    {% if categories %}
-    <div class="category-grid">
-        {% for category in categories %}
-        <a href="{% url 'catalog:product_list' %}?category={{ category.slug }}" class="category-card">
-            {{ category.name }}
-        </a>
-        {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-muted">No categories available.</p>
-    {% endif %}
-</section>
-
-<section class="section">
     <h2 class="section__title">Recently Added</h2>
     {% if recent_products %}
     <div class="product-grid">
         {% for product in recent_products %}
-        <article class="product-card">
-            <div class="product-card__body">
-                <h3 class="product-card__title"><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
-                <p class="product-card__price">${{ product.current_price }}</p>
-            </div>
-        </article>
+            {% include 'catalog/includes/product_card.html' with product=product %}
         {% endfor %}
     </div>
     {% else %}
@@ -73,7 +55,7 @@
     {% endif %}
 </section>
 
-<section class="section card text-center" style="background: linear-gradient(135deg, #eef2ff, #ffffff);">
+<section class="section card text-center" style="padding: var(--space-2xl); background: linear-gradient(135deg, #eef2ff, #ffffff);">
     <h2 class="section__title">AI-Powered Recommendations</h2>
     <p class="text-muted mb-2">Get personalized product suggestions based on your browsing and purchase history.</p>
     {% if not user.is_authenticated %}
@@ -82,26 +64,4 @@
     <a href="/api/recommendations/" class="btn btn--primary">View Your Recommendations</a>
     {% endif %}
 </section>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    .hero {
-        padding: var(--space-3xl) 0;
-    }
-    .hero h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        letter-spacing: -1px;
-        margin-bottom: var(--space-md);
-    }
-    .hero p {
-        font-size: 1.15rem;
-        color: var(--color-gray-500);
-        margin-bottom: var(--space-lg);
-    }
-    @media (max-width: 768px) {
-        .hero h1 { font-size: 1.75rem; }
-    }
-</style>
 {% endblock %}

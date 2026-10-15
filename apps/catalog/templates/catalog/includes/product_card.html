@@ -1,0 +1,36 @@
+{% load humanize %}
+{# Reusable product card. Expects: product #}
+<article class="product-card">
+    <a href="{{ product.get_absolute_url }}" class="product-card__image-link">
+        {% if product.primary_image %}
+        <img src="{{ product.primary_image.image.url }}"
+             alt="{{ product.primary_image.alt_text|default:product.name }}"
+             class="product-card__image" loading="lazy">
+        {% else %}
+        <div class="product-card__placeholder" aria-hidden="true">🛍️</div>
+        {% endif %}
+    </a>
+    <div class="product-card__body">
+        {% if product.brand %}
+        <p class="product-card__brand">{{ product.brand.name }}</p>
+        {% endif %}
+        <h3 class="product-card__title">
+            <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
+        </h3>
+        {% if product.review_count %}
+        <p class="product-card__rating">★ {{ product.average_rating }} ({{ product.review_count }})</p>
+        {% endif %}
+        <p class="product-card__price">
+            {% if product.sale_price %}<s>${{ product.price|floatformat:2 }}</s>{% endif %}
+            ${{ product.current_price|floatformat:2 }}
+            {% if product.sale_price %}<span class="product-card__badge">-{{ product.discount_percentage }}%</span>{% endif %}
+        </p>
+        {% if not product.in_stock %}
+        <span class="badge badge--error">Out of Stock</span>
+        {% elif product.is_low_stock %}
+        <span class="badge badge--warning">Only {{ product.stock_quantity }} left</span>
+        {% else %}
+        <span class="badge badge--success">In Stock</span>
+        {% endif %}
+    </div>
+</article>
