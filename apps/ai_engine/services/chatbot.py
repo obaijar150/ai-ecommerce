@@ -229,7 +229,7 @@ class ChatbotService:
         try:
             results = list(SearchService.search_products(query)[:6])
         except Exception:
-            logger.exception("Product search failed in chatbot.")
+            logger.debug("Postgres FTS unavailable; using semantic fallback.")
             results = []
 
         if not results:
@@ -389,11 +389,14 @@ class ChatbotService:
     @staticmethod
     def _respond_fallback(message: str, user: Optional[object]) -> str:
         if (message or "").strip():
-            # Portable fallback (works on SQLite and Postgres): semantic search.
+            query = ChatbotService._extract_query(message)
+            # Portable fallback (works on SQLite and Postgres): semantic search
+            # over the *extracted* query, so typos and filler words do not
+            # defeat matching ("can you fing me a headphone" -> "headphone").
             try:
                 from apps.ai_engine.services.ml_service import semantic_search
 
-                if semantic_search(message, limit=5):
+                if semantic_search(query or message, limit=5):
                     return ChatbotService._respond_product_search(message, user)
             except Exception:
                 pass
@@ -401,7 +404,7 @@ class ChatbotService:
             try:
                 from apps.search.services import SearchService
 
-                if SearchService.search_products(message).exists():
+                if SearchService.search_products(query or message).exists():
                     return ChatbotService._respond_product_search(message, user)
             except Exception:
                 pass

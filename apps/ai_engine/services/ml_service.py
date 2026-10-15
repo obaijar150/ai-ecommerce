@@ -153,6 +153,14 @@ def semantic_search(
     if not query:
         return []
 
+    # Tolerate simple inflection (headphone <-> headphones) so a user phrasing
+    # in the singular still matches a catalog written in the plural.
+    candidates = [query]
+    if query.endswith("s") and len(query) > 3:
+        candidates.append(query[:-1])
+    else:
+        candidates.append(query + "s")
+
     try:
         features = _item_features()
         if not features:
@@ -161,24 +169,29 @@ def semantic_search(
         documents = [features[item_id]["text"] for item_id in item_ids]
         by_id_candidates = set(features)
 
-        # Prefer a persisted (possibly trained/offline) index when available.
-        service = SemanticSearchService(
-            artifact_name="embedding_index",
-            live_item_ids=item_ids,
-            live_documents=documents,
-        )
-        hits = service.search(query, k=limit)
-
-        # Guard against stale persisted indexes that no longer match the live
-        # catalog: if none of the hits resolve to a current product, refit a
-        # live TF-IDF index over the current catalog and search again.
-        if not any(item_id in by_id_candidates for item_id, _ in hits):
-            live_service = SemanticSearchService(
-                artifact_name="embedding_index__live_fallback",
+        hits = []
+        for candidate in candidates:
+            # Prefer a persisted (possibly trained/offline) index when available.
+            service = SemanticSearchService(
+                artifact_name="embedding_index",
                 live_item_ids=item_ids,
                 live_documents=documents,
             )
-            hits = live_service.search(query, k=limit)
+            hits = service.search(candidate, k=limit)
+
+            # Guard against stale persisted indexes that no longer match the live
+            # catalog: if none of the hits resolve to a current product, refit a
+            # live TF-IDF index over the current catalog and search again.
+            if not any(item_id in by_id_candidates for item_id, _ in hits):
+                live_service = SemanticSearchService(
+                    artifact_name="embedding_index__live_fallback",
+                    live_item_ids=item_ids,
+                    live_documents=documents,
+                )
+                hits = live_service.search(candidate, k=limit)
+
+            if hits:
+                break
     except Exception:
         logger.exception("Semantic search failed; returning no results.")
         return []
