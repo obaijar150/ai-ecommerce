@@ -29,7 +29,8 @@ class RecommendationCache(models.Model):
         unique_together = ["user", "product"]
 
     def __str__(self) -> str:
-        return f"Rec for {self.user.username}: {self.product.name} ({self.score})"
+        owner = self.user.username if self.user_id else "guest"
+        return f"Rec for {owner}: {self.product.name} ({self.score})"
 
 
 class UserActivityLog(models.Model):

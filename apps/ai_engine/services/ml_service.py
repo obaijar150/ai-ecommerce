@@ -83,26 +83,54 @@ def recommend_products(user: "_User", limit: int = 10) -> list[Product]:
     Returns:
         A list of active ``Product`` objects, best first. Empty on any failure.
     """
+    scored, _algorithm = recommend_products_scored(user, limit)
+    return [product for product, _score in scored]
+
+
+def recommend_products_scored(
+    user: "_User", limit: int = 10
+) -> tuple[list[tuple[Product, float]], str]:
+    """Return ``([(Product, score)], algorithm)`` for ``user``.
+
+    The algorithm is the name reported by the active model
+    (``"hybrid"``/``"popularity"``), which is recorded on cached recommendations
+    so the provenance of a suggestion is auditable.
+
+    Args:
+        user: The authenticated user.
+        limit: Maximum number of products to return.
+
+    Returns:
+        A ``(pairs, algorithm)`` tuple. ``pairs`` is empty and ``algorithm`` is
+        ``"popularity"`` on any failure.
+    """
     try:
         engine = RecommenderInference(
             fallback_interactions=_activity_interactions(),
             fallback_item_features=_item_features(),
         )
+        user_id = f"u{user.pk}"
         item_ids = engine.recommend(
-            f"u{user.pk}", k=limit, exclude_seen=_user_seen_product_ids(user)
+            user_id, k=limit, exclude_seen=_user_seen_product_ids(user)
         )
+        if not item_ids:
+            return [], engine.algorithm
+        scores = engine.score(user_id, item_ids)
+        algorithm = engine.algorithm
     except Exception:
         logger.exception("Recommendation inference failed; returning no results.")
-        return []
-
-    if not item_ids:
-        return []
+        return [], "popularity"
 
     products = Product.objects.filter(pk__in=item_ids, is_active=True).select_related(
         "category"
     )
     by_id = {str(product.pk): product for product in products}
-    return [by_id[item_id] for item_id in item_ids if item_id in by_id]
+    pairs = [
+        (by_id[item_id], float(scores[index]))
+        for index, item_id in enumerate(item_ids)
+        if item_id in by_id
+    ]
+    return pairs, algorithm
 
 
 def semantic_search(

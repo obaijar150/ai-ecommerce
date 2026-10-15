@@ -1,7 +1,11 @@
 """
-Recommendation service: collaborative filtering via Surprise SVD.
+Recommendation service used by the recommendations API.
 
-Falls back to popularity-based recommendations for new users (cold start).
+Authenticated users get recommendations from the newest trained artifact via the
+isolated ``ai_engine.ml`` engine (see ``services/ml_service.py``), cached in
+``RecommendationCache``. Guests and cold-start users get a deterministic
+popularity ranking that is **not** persisted (``RecommendationCache.user`` is
+non-nullable, so there is nothing to key guest rows on).
 """
 
 import logging
@@ -30,45 +34,91 @@ class RecommendationService:
         """
         Get personalized product recommendations.
 
-        For authenticated users: returns cached SVD-based recommendations.
-        For guests or cold start: returns popular products.
+        For authenticated users: returns cached recommendations, generating and
+        caching them on a miss. For guests: returns a non-persisted popularity
+        ranking (guests have no cache row).
         """
         if user and user.is_authenticated:
-            # Check cache first
-            cached = RecommendationCache.objects.filter(
-                user=user
-            ).select_related("product")[:limit]
-
+            cached = list(
+                RecommendationCache.objects.filter(user=user)
+                .select_related("product")[:limit]
+            )
             if cached:
                 return cached
+            return RecommendationService._generate_for_user(user, limit)
 
-            # Cache miss — generate on the fly (or trigger Celery task)
+        # Guest user — popularity ranking, never persisted.
+        return RecommendationService._get_popular_recommendations(None, limit)
+
+    @staticmethod
+    def _generate_for_user(user, limit: int) -> List[RecommendationCache]:
+        """Generate and cache recommendations for an authenticated user.
+
+        Tries the trained ML engine first and falls back to popularity when it
+        produces nothing or is unavailable.
+        """
+        pairs: list = []
+        algorithm = "popular"
+        try:
+            from .ml_service import recommend_products_scored
+
+            pairs, algorithm = recommend_products_scored(user, limit)
+        except Exception:
+            logger.exception("ML recommendations failed; using popularity fallback.")
+
+        if not pairs:
             return RecommendationService._get_popular_recommendations(user, limit)
 
-        # Guest user — popular products
-        return RecommendationService._get_popular_recommendations(None, limit)
+        recommendations: List[RecommendationCache] = []
+        for rank, (product, score) in enumerate(pairs, 1):
+            rec, _ = RecommendationCache.objects.get_or_create(
+                user=user,
+                product=product,
+                defaults={
+                    "score": round(float(score), 4),
+                    "algorithm": algorithm,
+                    "rank": rank,
+                },
+            )
+            recommendations.append(rec)
+        return recommendations
 
     @staticmethod
     def _get_popular_recommendations(
         user, limit: int
     ) -> List[RecommendationCache]:
-        """Fallback: return most popular products as recommendations."""
+        """Fallback: return the most popular products as recommendations.
+
+        Rows are persisted only for authenticated users; for guests the
+        ``RecommendationCache`` instances are returned unsaved so the response
+        works without violating the non-null ``user`` constraint.
+        """
         popular_products = Product.objects.filter(is_active=True).order_by(
             "-view_count", "-average_rating"
         )[:limit]
 
-        # Create RecommendationCache entries with popularity score
-        recommendations = []
+        persist = bool(user and getattr(user, "is_authenticated", False))
+        recommendations: List[RecommendationCache] = []
         for rank, product in enumerate(popular_products, 1):
-            rec, _ = RecommendationCache.objects.get_or_create(
-                user=user if user and user.is_authenticated else None,
-                product=product,
-                defaults={
-                    "score": round(1.0 / rank, 4),
-                    "algorithm": "popular",
-                    "rank": rank,
-                },
-            )
+            score = round(1.0 / rank, 4)
+            if persist:
+                rec, _ = RecommendationCache.objects.get_or_create(
+                    user=user,
+                    product=product,
+                    defaults={
+                        "score": score,
+                        "algorithm": "popular",
+                        "rank": rank,
+                    },
+                )
+            else:
+                rec = RecommendationCache(
+                    user=None,
+                    product=product,
+                    score=score,
+                    algorithm="popular",
+                    rank=rank,
+                )
             recommendations.append(rec)
 
         return recommendations
