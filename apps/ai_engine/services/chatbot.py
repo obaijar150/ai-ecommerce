@@ -42,6 +42,11 @@ class ChatbotService:
             r"^\s*(hi|hello|hey|yo|hiya|good morning|good afternoon|good evening)\b",
             r"^\s*(thanks|thank you|thx)\b",
         ],
+        "smalltalk": [
+            r"\b(how are you|how's it going|what'?s up|how do you do|who are you)\b",
+            r"\bare you (ok|okay|alive|a bot|an ai|real)\b",
+            r"^\s*(nice|cool|great|awesome|ok|okay)\s*$",
+        ],
         "help": [
             r"\b(help|how (do|can|to)|what can you|capabilities|support|assist)\b",
         ],
@@ -184,6 +189,7 @@ class ChatbotService:
 
         handlers = {
             "greeting": ChatbotService._respond_greeting,
+            "smalltalk": ChatbotService._respond_smalltalk,
             "help": ChatbotService._respond_help,
             "product_search": ChatbotService._respond_product_search,
             "recommendation": ChatbotService._respond_recommendation,
@@ -211,6 +217,20 @@ class ChatbotService:
             f"Hello{name_part}! I'm your AI shopping assistant. I can find products, "
             "check prices and availability, recommend items, track your orders, and "
             "summarize reviews. What would you like to do?"
+        )
+
+    @staticmethod
+    def _respond_smalltalk(message: str, user: Optional[object]) -> str:
+        lowered = (message or "").lower()
+        if "who are you" in lowered or "what are you" in lowered:
+            return (
+                "I'm your AI shopping assistant for this store. I can search the "
+                "catalog, compare prices, recommend products, check orders and "
+                "summarize reviews. Type \"help\" for examples."
+            )
+        return (
+            "I'm doing great, thanks for asking! I'm here to help you shop. "
+            "Try \"find wireless headphones\" or \"recommend something for travel\"."
         )
 
     @staticmethod
@@ -250,6 +270,31 @@ class ChatbotService:
                 "Try different keywords, or browse all products at /products/."
             )
 
+        constraint = ChatbotService._parse_price_constraint(message)
+        if constraint:
+            op, value = constraint
+            filtered = []
+            for product in results:
+                price = float(getattr(product, "current_price", 0) or 0)
+                if op == "lte" and price <= value:
+                    filtered.append(product)
+                elif op == "gte" and price >= value:
+                    filtered.append(product)
+            if filtered:
+                results = filtered
+            else:
+                cheapest = min(
+                    (float(getattr(p, "current_price", 0) or 0) for p in results),
+                    default=None,
+                )
+                if cheapest is not None:
+                    direction = "under" if op == "lte" else "over"
+                    return (
+                        f"I don't have products matching \"{query}\" "
+                        f"{direction} ${value:g}. The cheapest option is about "
+                        f"${cheapest:g}. Try a different budget or browse /products/."
+                    )
+
         lines = []
         for product in results:
             price = getattr(product, "current_price", None)
@@ -269,8 +314,22 @@ class ChatbotService:
         from apps.catalog.models import Product
         from apps.ai_engine.services.ml_service import recommend_products
 
+        query = ChatbotService._extract_query(message)
         products: list = []
-        if user is not None:
+        if query:
+            try:
+                from apps.ai_engine.services import ml_service
+
+                products = [product for product, _ in ml_service.semantic_search(query, limit=6)]
+            except Exception:
+                products = []
+            if not products:
+                try:
+                    products = list(SearchService.search_products(query)[:6])
+                except Exception:
+                    products = []
+
+        if not products and user is not None:
             try:
                 products = list(recommend_products(user, limit=6))
             except Exception:
@@ -425,14 +484,48 @@ class ChatbotService:
         from apps.ai_engine.text.normalizer import normalize, tokens as tokenize
         from apps.ai_engine.text.spell_corrector import default_corrector
 
-        normalized = normalize(message)
+        text = (message or "")
+        desire_match = re.search(
+            r"(?:want|need|looking for|prefer|get me|show me|find me|i want|i need)\s+(.+)",
+            text,
+            re.IGNORECASE,
+        )
+        base = desire_match.group(1) if desire_match else text
+
+        normalized = normalize(base)
         kept = [token for token in tokenize(normalized) if token not in _QUERY_STOP_WORDS]
+        if not kept:
+            kept = [token for token in tokenize(normalized) if token not in {"not", "no"}]
         if not kept:
             kept = tokenize(normalized)
         if not kept:
             return ""
         corrected = default_corrector().correct_text(" ".join(kept))
         return corrected or " ".join(kept)
+
+    @staticmethod
+    def _parse_price_constraint(message: str):
+        """Return (\"lte\"|\"gte\", value) or None from a constraint phrase."""
+        text = (message or "").lower()
+        match = re.search(
+            r"(?:under|below|less than|cheaper than|lower than|up to|<=|<)\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]+)?)",
+            text,
+        )
+        if match:
+            try:
+                return "lte", float(match.group(1).replace(",", ""))
+            except ValueError:
+                pass
+        match = re.search(
+            r"(?:over|above|more than|greater than|at least|>=|>)\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]+)?)",
+            text,
+        )
+        if match:
+            try:
+                return "gte", float(match.group(1).replace(",", ""))
+            except ValueError:
+                pass
+        return None
 
     @staticmethod
     def _extract_order_id(message: str):

@@ -62,9 +62,23 @@ class SpellCorrector:
         """Return whether any correction backend is ready."""
         return bool(self.vocabulary) and (_SYMSPELL_AVAILABLE or _RAPIDFUZZ_AVAILABLE)
 
+    # Very common English words that must never be "corrected" into product
+    # tokens, no matter how close they look.
+    _COMMON_WORDS = frozenset(
+        "a an and are as at be but by for if in into is it of on or the to "
+        "with you your i me my we our us not no nor so than then there these "
+        "this those up down out off over under more less lower higher better "
+        "best worst new old good bad big small want need looking find show get "
+        "give tell about price cost money budget smart phone phones headphone "
+        "headphones headphone earbud earbuds laptop laptop computer coffee "
+        "machine espresso brew how are what who when where why which".split()
+    )
+
     def correct_token(self, token: str) -> str:
         """Correct a single token against the vocabulary."""
         if not token or token.isdigit():
+            return token
+        if token.lower() in self._COMMON_WORDS:
             return token
         if not self.vocabulary:
             return token
@@ -85,7 +99,7 @@ class SpellCorrector:
             match = _rf_process.extractOne(
                 token, self.vocabulary, scorer=_rf_fuzz.ratio
             )
-            if match and match[1] >= 80 and match[0].lower() != token.lower():
+            if match and match[1] >= 88 and match[0].lower() != token.lower():
                 return str(match[0])
 
         return token
