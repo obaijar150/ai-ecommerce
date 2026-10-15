@@ -1,53 +1,121 @@
 {% extends 'base_store.html' %}
+{% load static %}
 
 {% block title %}Checkout — AI E-Commerce{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'orders/css/orders.css' %}">
+{% endblock %}
 
 {% block store_content %}
 <section class="section">
     <h1 class="section__title">Checkout</h1>
-    <div style="display: grid; grid-template-columns: 1fr 400px; gap: var(--space-2xl);">
-        <div>
-            <h3 style="margin-bottom: var(--space-md);">Order Summary</h3>
-            {% for item in cart_items %}
-            <div class="card mb-1" style="padding: var(--space-md); display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h4 style="margin: 0;">{{ item.product.name }}</h4>
-                    <p class="text-muted" style="font-size: 0.85rem; margin: 0;">Qty: {{ item.quantity }} x ${{ item.product.current_price }}</p>
-                </div>
-                <p style="font-weight: 600;">${{ item.product.current_price|floatformat:2 }}</p>
-            </div>
-            {% endfor %}
-        </div>
-        <div class="card" style="position: sticky; top: calc(var(--header-height) + var(--space-md));">
-            <h3 style="margin-bottom: var(--space-lg);">Payment Details</h3>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
-                <span>Subtotal</span>
-                <span>${{ subtotal|floatformat:2 }}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
-                <span>Shipping</span>
-                <span>{% if shipping_cost == 0 %}Free{% else %}${{ shipping_cost|floatformat:2 }}{% endif %}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-md);">
-                <span>Tax (8%)</span>
-                <span>${{ tax|floatformat:2 }}</span>
-            </div>
-            <hr style="margin: var(--space-md) 0; border-color: var(--color-gray-100);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
-                <strong style="font-size: 1.1rem;">Total</strong>
-                <strong style="font-size: 1.5rem; color: var(--color-primary);">${{ total|floatformat:2 }}</strong>
-            </div>
-            <button class="btn btn--primary btn--full" style="padding: var(--space-md); font-size: 1rem;">🔒 Place Order Securely</button>
-            <p class="text-muted text-center mt-1" style="font-size: 0.75rem;">Payment processing will be integrated in Phase 3.</p>
-        </div>
-    </div>
-</section>
-{% endblock %}
 
-{% block extra_css %}
-<style>
-    @media (max-width: 768px) {
-        div[style*="grid-template-columns: 1fr 400px"] { grid-template-columns: 1fr !important; }
-    }
-</style>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.idempotency_key }}
+
+        {% if form.non_field_errors %}
+        <div class="messages__item messages__item--error">
+            {% for error in form.non_field_errors %}<p style="margin:0;">{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="checkout-layout">
+            <div>
+                <fieldset class="checkout-fieldset">
+                    <legend>Shipping address</legend>
+
+                    <div class="form-group">
+                        <label for="{{ form.address.id_for_label }}">Saved address</label>
+                        {{ form.address }}
+                        {% for error in form.address.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                    </div>
+
+                    <details {% if not default_address %}open{% endif %}>
+                        <summary style="cursor:pointer; font-weight: var(--font-weight-medium); margin-bottom: var(--space-md);">
+                            Or enter a new address
+                        </summary>
+                        <div class="checkout-grid">
+                            <div class="form-group">
+                                <label for="{{ form.label.id_for_label }}">Label</label>
+                                {{ form.label }}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.country.id_for_label }}">Country</label>
+                                {{ form.country }}
+                                {% for error in form.country.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                            </div>
+                            <div class="form-group form-group--full">
+                                <label for="{{ form.street.id_for_label }}">Street address</label>
+                                {{ form.street }}
+                                {% for error in form.street.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.city.id_for_label }}">City</label>
+                                {{ form.city }}
+                                {% for error in form.city.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.state.id_for_label }}">State / Province</label>
+                                {{ form.state }}
+                                {% for error in form.state.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.postal_code.id_for_label }}">Postal code</label>
+                                {{ form.postal_code }}
+                                {% for error in form.postal_code.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                            </div>
+                        </div>
+                    </details>
+                </fieldset>
+
+                <fieldset class="checkout-fieldset">
+                    <legend>Payment</legend>
+                    <div class="form-group">
+                        <label for="{{ form.payment_method.id_for_label }}">Payment method</label>
+                        {{ form.payment_method }}
+                        {% for error in form.payment_method.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.payment_token.id_for_label }}">Payment token (development)</label>
+                        {{ form.payment_token }}
+                        <p class="field-help">{{ form.payment_token.help_text }}</p>
+                        {% for error in form.payment_token.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                    </div>
+                    <p class="field-help">
+                        🔒 We never store card numbers or CVV values. This store uses a mock
+                        payment provider for local development.
+                    </p>
+                </fieldset>
+            </div>
+
+            <aside class="card cart-summary">
+                <h3 style="margin-top: 0;">Order Summary</h3>
+                {% for item in cart_items %}
+                <div class="cart-summary__row">
+                    <span>{{ item.product.name }} × {{ item.quantity }}</span>
+                    <span>${{ item.line_total|floatformat:2 }}</span>
+                </div>
+                {% endfor %}
+                <div class="cart-summary__row" style="border-top:1px solid var(--color-gray-200); margin-top: var(--space-sm); padding-top: var(--space-sm);">
+                    <span>Subtotal</span><span>${{ subtotal|floatformat:2 }}</span>
+                </div>
+                <div class="cart-summary__row">
+                    <span>Shipping</span>
+                    <span>{% if shipping_cost %}${{ shipping_cost|floatformat:2 }}{% else %}Free{% endif %}</span>
+                </div>
+                <div class="cart-summary__row">
+                    <span>Estimated tax</span><span>${{ tax|floatformat:2 }}</span>
+                </div>
+                <div class="cart-summary__row cart-summary__row--total">
+                    <span>Total</span><span>${{ total|floatformat:2 }}</span>
+                </div>
+
+                <button type="submit" class="btn btn--primary btn--full mt-2">Place Order</button>
+                <a href="{% url 'orders:cart' %}" class="btn btn--outline btn--full mt-1">Back to Cart</a>
+            </aside>
+        </div>
+    </form>
+</section>
 {% endblock %}

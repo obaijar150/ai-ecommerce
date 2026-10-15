@@ -1,67 +1,134 @@
 {% extends 'base_store.html' %}
+{% load static %}
 
-{% block title %}Order #{{ order.id|truncatechars:8 }} — AI E-Commerce{% endblock %}
+{% block title %}Order #{{ order.short_id }} — AI E-Commerce{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'orders/css/orders.css' %}">
+{% endblock %}
 
 {% block store_content %}
 <section class="section">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-xl); flex-wrap: wrap; gap: var(--space-md);">
-        <h1 class="section__title" style="margin: 0;">Order #{{ order.id|truncatechars:8 }}</h1>
+        <h1 class="section__title" style="margin: 0;">Order #{{ order.short_id }}</h1>
         <span class="badge badge--{{ order.status }}" style="font-size: 0.85rem; padding: var(--space-sm) var(--space-md);">{{ order.get_status_display }}</span>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 300px; gap: var(--space-xl);">
+    <div class="checkout-layout">
         <div>
-            <h3 style="margin-bottom: var(--space-md);">Items</h3>
-            {% for item in order.items.all %}
-            <div class="card mb-1" style="padding: var(--space-md);">
-                <div style="display: flex; justify-content: space-between;">
-                    <div>
-                        <h4 style="margin: 0;">{{ item.product.name|default:"Product removed" }}</h4>
-                        <p class="text-muted" style="font-size: 0.85rem;">Qty: {{ item.quantity }} x ${{ item.unit_price }}</p>
+            <div class="card">
+                <h3 style="margin-top: 0;">Items</h3>
+                {% for item in order.items.all %}
+                <div class="order-total-row">
+                    <span>
+                        {% if item.product %}
+                        <a href="{{ item.product.get_absolute_url }}">{{ item.display_name }}</a>
+                        {% else %}{{ item.display_name }}{% endif %}
+                        × {{ item.quantity }}
+                        <span class="text-muted" style="font-size:0.8rem;">(${{ item.unit_price|floatformat:2 }} each)</span>
+                    </span>
+                    <span>${{ item.total_price|floatformat:2 }}</span>
+                </div>
+                {% endfor %}
+                <div class="order-total-row">
+                    <span>Subtotal</span><span>${{ order.subtotal|floatformat:2 }}</span>
+                </div>
+                <div class="order-total-row">
+                    <span>Shipping</span>
+                    <span>{% if order.shipping_cost %}${{ order.shipping_cost|floatformat:2 }}{% else %}Free{% endif %}</span>
+                </div>
+                <div class="order-total-row">
+                    <span>Tax</span><span>${{ order.tax|floatformat:2 }}</span>
+                </div>
+                <div class="order-total-row order-total-row--grand">
+                    <span>Total</span><span>${{ order.total|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <div class="card mt-2">
+                <h3 style="margin-top: 0;">Status History</h3>
+                <ul class="order-timeline">
+                    {% for entry in order.status_history.all %}
+                    <li class="order-timeline__item">
+                        <strong>{{ entry.get_status_display }}</strong>
+                        {% if entry.notes %}<span class="text-muted">— {{ entry.notes }}</span>{% endif %}
+                        <br><span class="text-muted" style="font-size:0.8rem;">{{ entry.created_at|date:"M j, Y H:i" }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="text-muted">No status updates yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <aside>
+            <div class="card">
+                <h3 style="margin-top: 0;">Payment</h3>
+                <div class="order-total-row">
+                    <span>Method</span><span>{{ order.get_payment_method_display }}</span>
+                </div>
+                {% if order.paid_at %}
+                <div class="order-total-row">
+                    <span>Paid on</span><span>{{ order.paid_at|date:"M j, Y H:i" }}</span>
+                </div>
+                {% endif %}
+                {% if latest_payment %}
+                <div class="order-total-row">
+                    <span>Latest attempt</span>
+                    {% if latest_payment.succeeded %}
+                    <span class="badge badge--paid">Succeeded</span>
+                    {% elif latest_payment.status == 'failed' %}
+                    <span class="badge badge--error">Failed</span>
+                    {% else %}
+                    <span class="badge badge--pending">Pending</span>
+                    {% endif %}
+                </div>
+                {% if latest_payment.failure_reason %}
+                <p class="form-error">{{ latest_payment.failure_reason }}</p>
+                {% endif %}
+                {% endif %}
+
+                {% if not order.is_paid and order.payment_method == 'mock_card' %}
+                <form method="post" action="{% url 'orders:order_pay' order.pk %}" class="mt-1">
+                    {% csrf_token %}
+                    <div class="form-group" style="margin-bottom: var(--space-sm);">
+                        <label for="payment_token" style="font-size:0.85rem;">Retry payment</label>
+                        <input type="text" name="payment_token" id="payment_token" placeholder="tok_success" maxlength="64">
+                        <p class="field-help">Use 'tok_success' to approve or 'tok_failure' to decline (mock).</p>
                     </div>
-                    <strong>${{ item.total_price|floatformat:2 }}</strong>
-                </div>
+                    <button type="submit" class="btn btn--primary btn--full">Retry Payment</button>
+                </form>
+                {% endif %}
             </div>
-            {% endfor %}
 
-            <h3 class="mt-2" style="margin-bottom: var(--space-md);">Order Timeline</h3>
-            {% for history in order.status_history.all %}
-            <div class="mb-1" style="display: flex; gap: var(--space-md); align-items: center;">
-                <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary);"></span>
-                <div>
-                    <p style="margin: 0; font-weight: 500;">{{ history.get_status_display|default:history.status }}</p>
-                    <p class="text-muted" style="font-size: 0.8rem; margin: 0;">{{ history.created_at|date }}</p>
-                </div>
+            <div class="card mt-2">
+                <h3 style="margin-top: 0;">Shipping</h3>
+                {% if order.shipping_address %}
+                <address style="font-style: normal;">
+                    <strong>{{ order.shipping_address.label }}</strong><br>
+                    {{ order.shipping_address.street }}<br>
+                    {{ order.shipping_address.city }}, {{ order.shipping_address.state }} {{ order.shipping_address.postal_code }}<br>
+                    {{ order.shipping_address.country }}
+                </address>
+                {% else %}
+                <p class="text-muted">No shipping address on file.</p>
+                {% endif %}
+                {% if order.tracking_number %}
+                <p><strong>Tracking:</strong> {{ order.tracking_number }}</p>
+                {% endif %}
             </div>
-            {% endfor %}
-        </div>
 
-        <div class="card" style="height: fit-content; position: sticky; top: calc(var(--header-height) + var(--space-md));">
-            <h3 style="margin-bottom: var(--space-md);">Summary</h3>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
-                <span>Subtotal</span><span>${{ order.subtotal|floatformat:2 }}</span>
+            <div class="mt-2">
+                {% if order.can_be_cancelled %}
+                <form method="post" action="{% url 'orders:order_cancel' order.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn--danger btn--full"
+                            onclick="return confirm('Cancel this order and restore stock?');">Cancel Order</button>
+                </form>
+                {% endif %}
+                <a href="{% url 'orders:order_list' %}" class="btn btn--outline btn--full mt-1">Back to Orders</a>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
-                <span>Shipping</span><span>${{ order.shipping_cost|floatformat:2 }}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-md);">
-                <span>Tax</span><span>${{ order.tax|floatformat:2 }}</span>
-            </div>
-            <hr style="margin: var(--space-md) 0; border-color: var(--color-gray-100);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <strong>Total</strong>
-                <strong style="font-size: 1.25rem; color: var(--color-primary);">${{ order.total|floatformat:2 }}</strong>
-            </div>
-            <a href="{% url 'orders:order_list' %}" class="btn btn--outline btn--full mt-2">← Back to Orders</a>
-        </div>
+        </aside>
     </div>
 </section>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    @media (max-width: 768px) {
-        div[style*="grid-template-columns: 1fr 300px"] { grid-template-columns: 1fr !important; }
-    }
-</style>
 {% endblock %}

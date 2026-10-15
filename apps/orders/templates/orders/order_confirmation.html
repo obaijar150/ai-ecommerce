@@ -1,0 +1,73 @@
+{% extends 'base_store.html' %}
+{% load static %}
+
+{% block title %}Order Confirmed — AI E-Commerce{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'orders/css/orders.css' %}">
+{% endblock %}
+
+{% block store_content %}
+<section class="section">
+    <div class="card" style="padding: var(--space-2xl); text-align: center; background: linear-gradient(135deg, var(--color-success-bg), #ffffff);">
+        <h1 style="margin: 0 0 var(--space-sm);">✅ Thank you for your order!</h1>
+        <p class="text-muted">Order <strong>#{{ order.short_id }}</strong> has been placed.</p>
+        <p>
+            Status:
+            <span class="badge badge--{{ order.status }}">{{ order.get_status_display }}</span>
+            {% if order.is_paid %}
+            <span class="badge badge--paid">Payment confirmed</span>
+            {% else %}
+            <span class="badge badge--pending">Payment pending</span>
+            {% endif %}
+        </p>
+        {% if not order.is_paid and order.payment_method == 'cash_on_delivery' %}
+        <p class="text-muted">You chose to pay on delivery. No online payment is required.</p>
+        {% endif %}
+    </div>
+
+    <div class="checkout-layout mt-2">
+        <div class="card">
+            <h3 style="margin-top: 0;">Items</h3>
+            {% for item in order.items.all %}
+            <div class="order-total-row">
+                <span>{{ item.display_name }} × {{ item.quantity }}</span>
+                <span>${{ item.total_price|floatformat:2 }}</span>
+            </div>
+            {% endfor %}
+            <div class="order-total-row">
+                <span>Subtotal</span><span>${{ order.subtotal|floatformat:2 }}</span>
+            </div>
+            <div class="order-total-row">
+                <span>Shipping</span>
+                <span>{% if order.shipping_cost %}${{ order.shipping_cost|floatformat:2 }}{% else %}Free{% endif %}</span>
+            </div>
+            <div class="order-total-row">
+                <span>Tax</span><span>${{ order.tax|floatformat:2 }}</span>
+            </div>
+            <div class="order-total-row order-total-row--grand">
+                <span>Total</span><span>${{ order.total|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <aside class="card">
+            <h3 style="margin-top: 0;">Shipping to</h3>
+            {% if order.shipping_address %}
+            <address style="font-style: normal;">
+                <strong>{{ order.shipping_address.label }}</strong><br>
+                {{ order.shipping_address.street }}<br>
+                {{ order.shipping_address.city }}, {{ order.shipping_address.state }} {{ order.shipping_address.postal_code }}<br>
+                {{ order.shipping_address.country }}
+            </address>
+            {% else %}
+            <p class="text-muted">No shipping address on file.</p>
+            {% endif %}
+
+            <div class="mt-2">
+                <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn--primary btn--full">View Order Details</a>
+                <a href="{% url 'catalog:product_list' %}" class="btn btn--outline btn--full mt-1">Continue Shopping</a>
+            </div>
+        </aside>
+    </div>
+</section>
+{% endblock %}

@@ -28,6 +28,11 @@ env = environ.Env(
     AI_SUMMARY_MAX_LENGTH=(int, 150),
     MAX_UPLOAD_SIZE_MB=(int, 5),
     ALLOWED_IMAGE_TYPES=(list, ["jpg", "jpeg", "png", "webp"]),
+    PAYMENT_PROVIDER=(str, "mock"),
+    MOCK_PAYMENT_FAILURE_RATE=(float, 0.0),
+    FREE_SHIPPING_THRESHOLD=(str, "50.00"),
+    SHIPPING_FLAT_RATE=(str, "5.99"),
+    SALES_TAX_RATE=(str, "0.08"),
 )
 
 # Load .env file if it exists
@@ -96,6 +101,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.orders.context_processors.cart_summary",
             ],
         },
     },
@@ -279,6 +285,14 @@ AI_RECOMMENDATION_TRAINING_INTERVAL_HOURS = env("AI_RECOMMENDATION_TRAINING_INTE
 AI_CHATBOT_MODEL_PATH = BASE_DIR / env("AI_CHATBOT_MODEL_PATH", default="models/chatbot_classifier.pkl")
 AI_NLP_MODEL_NAME = env("AI_NLP_MODEL_NAME", default="distilbart-cnn-12-6")
 AI_SUMMARY_MAX_LENGTH = env("AI_SUMMARY_MAX_LENGTH", default=150)
+
+# ── Payments & Pricing ───────────────────────────────────────
+# Only free/mock providers are supported. No real card data is ever stored.
+PAYMENT_PROVIDER = env("PAYMENT_PROVIDER")
+MOCK_PAYMENT_FAILURE_RATE = env("MOCK_PAYMENT_FAILURE_RATE")
+FREE_SHIPPING_THRESHOLD = env("FREE_SHIPPING_THRESHOLD")
+SHIPPING_FLAT_RATE = env("SHIPPING_FLAT_RATE")
+SALES_TAX_RATE = env("SALES_TAX_RATE")
 
 # ── Security (override in production.py) ─────────────────────
 SECURE_SSL_REDIRECT = env("SECURE_SSL_REDIRECT")

@@ -32,5 +32,12 @@
         {% else %}
         <span class="badge badge--success">In Stock</span>
         {% endif %}
+        {% if product.in_stock %}
+        <form method="post" action="{% url 'orders:cart_add' product.slug %}" style="margin-top: var(--space-sm);">
+            {% csrf_token %}
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn btn--primary btn--full">Add to Cart</button>
+        </form>
+        {% endif %}
     </div>
 </article>

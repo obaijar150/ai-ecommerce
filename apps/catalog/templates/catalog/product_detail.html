@@ -75,7 +75,19 @@
         </div>
 
         <div class="product-detail__actions">
-            <a href="{% url 'catalog:product_list' %}" class="btn btn--outline">← Continue Shopping</a>
+            {% if product.in_stock %}
+            <form method="post" action="{% url 'orders:cart_add' product.slug %}" style="display:flex; gap: var(--space-sm); align-items:flex-end;">
+                {% csrf_token %}
+                <div class="form-group" style="margin-bottom:0;">
+                    <label for="add-qty" style="font-size:0.8rem;">Quantity</label>
+                    <input type="number" id="add-qty" name="quantity" value="1" min="1"
+                           max="{{ product.stock_quantity }}" style="width:90px;">
+                </div>
+                <button type="submit" class="btn btn--primary">Add to Cart 🛒</button>
+            </form>
+            {% else %}
+            <button type="button" class="btn btn--outline" disabled>Out of Stock</button>
+            {% endif %}
             {% if user.is_authenticated %}
             <a href="{% url 'reviews:review_create' product.slug %}" class="btn btn--secondary">Write a Review</a>
             {% else %}
