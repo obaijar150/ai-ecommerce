@@ -388,9 +388,16 @@ class ChatbotService:
 
     @staticmethod
     def _respond_fallback(message: str, user: Optional[object]) -> str:
-        # Before giving up, try a product search — many "stupid" fallbacks are
-        # actually product queries phrased in an unexpected way.
         if (message or "").strip():
+            # Portable fallback (works on SQLite and Postgres): semantic search.
+            try:
+                from apps.ai_engine.services.ml_service import semantic_search
+
+                if semantic_search(message, limit=5):
+                    return ChatbotService._respond_product_search(message, user)
+            except Exception:
+                pass
+            # Postgres full-text search when available.
             try:
                 from apps.search.services import SearchService
 
