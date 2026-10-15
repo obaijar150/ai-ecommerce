@@ -118,7 +118,9 @@ class ChatbotService:
     @staticmethod
     def classify_intent(message: str) -> Tuple[str, float]:
         """Classify a user message into one of the supported intents."""
-        message_lower = (message or "").lower().strip()
+        from apps.ai_engine.text.normalizer import normalize
+
+        message_lower = normalize(message)
         if not message_lower:
             return "fallback", 1.0
 
@@ -419,13 +421,18 @@ class ChatbotService:
     # ------------------------------------------------------------------ #
     @staticmethod
     def _extract_query(message: str) -> str:
-        """Strip command words to recover the product query."""
-        tokens = re.findall(r"[A-Za-z0-9][A-Za-z0-9\-]*", (message or "").lower())
-        kept = [token for token in tokens if token not in _QUERY_STOP_WORDS]
-        # Keep at least something even if everything was a stop word.
+        """Strip command words and spell-correct to recover the product query."""
+        from apps.ai_engine.text.normalizer import normalize, tokens as tokenize
+        from apps.ai_engine.text.spell_corrector import default_corrector
+
+        normalized = normalize(message)
+        kept = [token for token in tokenize(normalized) if token not in _QUERY_STOP_WORDS]
         if not kept:
-            kept = tokens
-        return " ".join(kept).strip()
+            kept = tokenize(normalized)
+        if not kept:
+            return ""
+        corrected = default_corrector().correct_text(" ".join(kept))
+        return corrected or " ".join(kept)
 
     @staticmethod
     def _extract_order_id(message: str):

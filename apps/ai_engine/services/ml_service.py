@@ -153,6 +153,17 @@ def semantic_search(
     if not query:
         return []
 
+    # Spell-correct the query against the live catalog vocabulary so common
+    # typos ("hedphones", "laptoop") resolve to real products.
+    try:
+        from apps.ai_engine.text.spell_corrector import default_corrector
+
+        corrected = default_corrector().correct_text(query)
+        if corrected:
+            query = corrected
+    except Exception:
+        pass
+
     # Tolerate simple inflection (headphone <-> headphones) so a user phrasing
     # in the singular still matches a catalog written in the plural.
     candidates = [query]
