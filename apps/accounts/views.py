@@ -4,6 +4,7 @@ Accounts views: registration, login, logout, profile, addresses, wishlist, passw
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import (
@@ -238,7 +239,7 @@ class AddressDeleteView(UpdateView):
 # ── Wishlist Views ───────────────────────────────────────────
 
 
-class WishlistView(ListView):
+class WishlistView(LoginRequiredMixin, ListView):
     """User wishlist page — authenticated users only."""
 
     model = WishlistItem
