@@ -29,7 +29,8 @@ _QUERY_STOP_WORDS = {
     "info", "information", "price", "of", "please", "some", "good", "best",
     "any", "can", "you", "recommend", "suggest", "something", "product", "item",
     "review", "reviews", "summarize", "summary", "rating", "ratings",
-    "under", "over", "less", "more", "around",
+    "under", "over", "less", "more", "around", "lower", "higher", "than",
+    "below", "above", "least", "most", "budget", "cheaper", "expensive",
 }
 
 
@@ -492,6 +493,14 @@ class ChatbotService:
         )
         base = desire_match.group(1) if desire_match else text
 
+        # Strip price constraints so the product query does not contain them.
+        base = re.sub(
+            r"(under|below|less than|cheaper than|lower than|up to|over|above|"
+            r"more than|greater than|at least)\s*\$?\s*[0-9][0-9,]*(?:\.[0-9]+)?",
+            "",
+            base,
+            flags=re.IGNORECASE,
+        )
         normalized = normalize(base)
         kept = [token for token in tokenize(normalized) if token not in _QUERY_STOP_WORDS]
         if not kept:
