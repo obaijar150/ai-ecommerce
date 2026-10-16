@@ -1,7 +1,7 @@
-{% extends 'base_store.html' %}
+﻿{% extends 'base_store.html' %}
 {% load static humanize %}
 
-{% block title %}{{ product.name }} — AI E-Commerce{% endblock %}
+{% block title %}{{ product.name }} â€” AI E-Commerce{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'catalog/css/catalog.css' %}">
@@ -49,7 +49,7 @@
         <h1>{{ product.name }}</h1>
 
         {% if product.review_count %}
-        <p class="product-card__rating">★ {{ product.average_rating }} ({{ product.review_count }} review{{ product.review_count|pluralize }})</p>
+        <p class="product-card__rating">â˜… {{ product.average_rating }} ({{ product.review_count }} review{{ product.review_count|pluralize }})</p>
         {% endif %}
 
         <p class="product-detail__price">
@@ -83,7 +83,7 @@
                     <input type="number" id="add-qty" name="quantity" value="1" min="1"
                            max="{{ product.stock_quantity }}" style="width:90px;">
                 </div>
-                <button type="submit" class="btn btn--primary">Add to Cart 🛒</button>
+                <button type="submit" class="btn btn--primary">Add to Cart ðŸ›’</button>
             </form>
             {% else %}
             <button type="button" class="btn btn--outline" disabled>Out of Stock</button>
@@ -120,9 +120,9 @@
 
 {% if product.ai_summary %}
 <section class="section card" style="padding: var(--space-xl); background: linear-gradient(135deg, #eef2ff, #ffffff);">
-    <h2 class="section__title" style="font-size: 1.25rem;">🤖 AI Review Summary</h2>
+    <h2 class="section__title" style="font-size: 1.25rem;">ðŸ¤– AI Review Summary</h2>
     <p>{{ product.ai_summary.summary }}</p>
-    <p class="text-muted" style="font-size:0.85rem;">Sentiment: {{ product.ai_summary.sentiment_score }} · {{ product.ai_summary.model_version }}</p>
+    <p class="text-muted" style="font-size:0.85rem;">Sentiment: {{ product.ai_summary.sentiment_score }} Â· {{ product.ai_summary.model_version }}</p>
 </section>
 {% endif %}
 
@@ -133,7 +133,7 @@
             <span class="text-muted">/ 5</span>
         </div>
         <div>
-            <div class="review__stars">{% for _ in "12345" %}{% if forloop.counter <= product.average_rating %}★{% else %}☆{% endif %}{% endfor %}</div>
+            <div class="review__stars">{% for _ in "12345" %}{% if forloop.counter <= product.average_rating %}â˜…{% else %}â˜†{% endif %}{% endfor %}</div>
             <span class="review__meta">{{ product.review_count }} review{{ product.review_count|pluralize }}</span>
         </div>
     </div>
@@ -142,7 +142,7 @@
     {% for review in reviews %}
     <div class="card review">
         <div class="review__header">
-            <span class="review__stars">{% for _ in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+            <span class="review__stars">{% for _ in "12345" %}{% if forloop.counter <= review.rating %}â˜…{% else %}â˜†{% endif %}{% endfor %}</span>
             <span class="review__meta">{{ review.created_at|naturaltime }}</span>
         </div>
         <h3 style="font-size:1rem; margin: var(--space-xs) 0;">{{ review.title }}</h3>
@@ -161,6 +161,33 @@
     {% endif %}
 </section>
 
+{% if ai_review_summary %}
+<section class="section card" style="padding: var(--space-xl);">
+    <h2 class="section__title" style="font-size:1.25rem;">AI Review Summary</h2>
+    <p style="white-space: pre-line;">{{ ai_review_summary.summary }}</p>
+    {% if ai_review_summary.review_count %}<p class="text-muted" style="font-size:0.8rem;">Based on {{ ai_review_summary.review_count }} review(s). Sentiment score: {{ ai_review_summary.sentiment_score }}.</p>{% endif %}
+</section>
+{% endif %}
+
+{% if ai_recommendations %}
+<section class="section">
+    <h2 class="section__title" style="font-size:1.25rem;">Recommended for you</h2>
+    <div class="product-grid">
+        {% for item in ai_recommendations %}
+            <article class="product-card">
+                <div class="product-card__body">
+                    <h3 class="product-card__title"><a href="{{ item.url }}">{{ item.name }}</a></h3>
+                    <p class="product-card__price">${{ item.price }}</p>
+                    <ul class="text-muted" style="font-size:0.8rem; padding-left:1rem;">
+                        {% for r in item.reasons %}<li>{{ r }}</li>{% endfor %}
+                    </ul>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 {% if related_products %}
 <section class="section">
     <h2 class="section__title" style="font-size: 1.25rem;">You May Also Like</h2>
@@ -176,3 +203,4 @@
 {% block extra_js %}
 <script src="{% static 'catalog/js/product_detail.js' %}" defer></script>
 {% endblock %}
+

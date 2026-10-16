@@ -211,6 +211,23 @@ class ProductDetailView(DetailView):
         context["specifications"] = product.specifications or {}
         context["reviews"] = product.reviews.select_related("user")[:10]
 
+        # AI-powered review summary and recommendations (graceful fallback).
+        try:
+            from apps.ai_engine.services.ai_integration import review_summary, explained_recommendations
+
+            context["ai_review_summary"] = review_summary(product.pk)
+        except Exception:
+            context["ai_review_summary"] = None
+        try:
+            from apps.ai_engine.services.ai_integration import explained_recommendations
+
+            recommendations = explained_recommendations(self.request.user, limit=4)
+            context["ai_recommendations"] = [
+                item for item in recommendations if item["product_id"] != str(product.pk)
+            ][:4]
+        except Exception:
+            context["ai_recommendations"] = []
+
         if product.category:
             context["related_products"] = (
                 _base_product_queryset()
