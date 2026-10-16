@@ -1,0 +1,30 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Product Management — AI E-Commerce Admin{% endblock %}
+
+{% block store_content %}
+{% include 'analytics/includes/admin_nav.html' %}
+<section class="section">
+    <h1 class="section__title">Product Management</h1>
+    <p><a href="{% url 'analytics:product_add' %}" class="btn btn--primary">Add Product</a></p>
+    <div class="card">
+        <table class="table">
+            <thead><tr><th>Name</th><th>SKU</th><th>Price</th><th>Stock</th><th>Active</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ product.name }}</td>
+                <td>{{ product.sku }}</td>
+                <td>${{ product.price }}</td>
+                <td>{{ product.stock_quantity }}</td>
+                <td>{% if product.is_active %}Yes{% else %}No{% endif %}</td>
+                <td><a href="{% url 'analytics:product_edit' product.pk %}" class="btn btn--outline btn--sm">Edit</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">No products found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

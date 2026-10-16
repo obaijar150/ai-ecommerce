@@ -1,0 +1,10 @@
+{% load static %}
+<nav class="admin-nav" aria-label="Administration">
+    <a href="{% url 'analytics:dashboard' %}" class="admin-nav__link">Dashboard</a>
+    <a href="{% url 'analytics:product_list' %}" class="admin-nav__link">Products</a>
+    <a href="{% url 'analytics:category_list' %}" class="admin-nav__link">Categories</a>
+    <a href="{% url 'analytics:stock_update' %}" class="admin-nav__link">Stock</a>
+    <a href="{% url 'analytics:order_list' %}" class="admin-nav__link">Orders</a>
+    <a href="{% url 'analytics:review_list' %}" class="admin-nav__link">Reviews</a>
+    <a href="{% url 'analytics:sales_report' %}" class="admin-nav__link">Sales Report</a>
+</nav>

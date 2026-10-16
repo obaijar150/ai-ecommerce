@@ -1,0 +1,74 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Order Management — AI E-Commerce Admin{% endblock %}
+
+{% block store_content %}
+{% include 'analytics/includes/admin_nav.html' %}
+<section class="section">
+    <h1 class="section__title">Order Management</h1>
+
+    <form method="get" class="inline-form" style="margin-bottom: var(--space-md);">
+        <label for="status-filter">Filter by status</label>
+        <select id="status-filter" name="status" onchange="this.form.submit()">
+            <option value="">All statuses</option>
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <noscript><button type="submit" class="btn btn--outline btn--sm">Apply</button></noscript>
+    </form>
+
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Total</th>
+                    <th>Placed</th>
+                    <th>Status</th>
+                    <th>Update</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>#{{ order.id|stringformat:"s"|slice:":8" }}</td>
+                <td>{{ order.user.username }}</td>
+                <td>${{ order.total }}</td>
+                <td>{{ order.created_at|date:"M j, Y H:i" }}</td>
+                <td><span class="badge badge--{{ order.status }}">{{ order.get_status_display }}</span></td>
+                <td>
+                    <form method="post" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                        <label class="visually-hidden" for="status-{{ order.id }}">Status for order {{ order.id }}</label>
+                        <select id="status-{{ order.id }}" name="status">
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn--primary btn--sm">Save</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">No orders found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <nav class="pagination" aria-label="Order pages">
+        {% if page_obj.has_previous %}
+        <a class="btn btn--outline btn--sm" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a class="btn btn--outline btn--sm" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Next</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

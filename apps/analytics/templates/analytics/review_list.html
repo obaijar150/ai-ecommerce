@@ -1,0 +1,57 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Review Management — AI E-Commerce Admin{% endblock %}
+
+{% block store_content %}
+{% include 'analytics/includes/admin_nav.html' %}
+<section class="section">
+    <h1 class="section__title">Review Management</h1>
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>User</th>
+                    <th>Rating</th>
+                    <th>Title</th>
+                    <th>Placed</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for review in reviews %}
+            <tr>
+                <td>{{ review.product.name }}</td>
+                <td>{{ review.user.username }}</td>
+                <td>{{ review.rating }}★</td>
+                <td>{{ review.title }}</td>
+                <td>{{ review.created_at|date:"M j, Y" }}</td>
+                <td>
+                    <form method="post" class="inline-form" onsubmit="return confirm('Delete this review?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="review_id" value="{{ review.pk }}">
+                        <input type="hidden" name="action" value="delete">
+                        <button type="submit" class="btn btn--danger btn--sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">No reviews found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <nav class="pagination" aria-label="Review pages">
+        {% if page_obj.has_previous %}
+        <a class="btn btn--outline btn--sm" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a class="btn btn--outline btn--sm" href="?page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

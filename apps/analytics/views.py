@@ -1,57 +1,110 @@
 """
-Analytics views: admin dashboard with sales insights.
+Analytics views: admin dashboard with sales insights and staff-only management.
 """
 
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
+from django.contrib.auth.views import redirect_to_login
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncDate
-from django.shortcuts import render
+from django.forms import ModelForm
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from datetime import timedelta
+from django.views.generic import (
+    CreateView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
+from datetime import timedelta
+from functools import wraps
+
+from apps.catalog.models import Brand, Category, Product
 from apps.orders.models import Order
-from apps.catalog.models import Product
+from apps.reviews.models import Review
 from apps.ai_engine.models import UserActivityLog
 
 
-@staff_member_required
+def staff_required(view_func):
+    """Allow only staff; redirect anonymous users to the login page."""
+
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        if not request.user.is_staff:
+            return HttpResponseForbidden("Staff access only.")
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped
+
+
+class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Restrict views to authenticated staff users."""
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        return HttpResponseForbidden("Staff access only.")
+
+
+class ProductManagementForm(ModelForm):
+    class Meta:
+        model = Product
+        fields = [
+            "name",
+            "slug",
+            "category",
+            "brand",
+            "description",
+            "price",
+            "sale_price",
+            "sku",
+            "stock_quantity",
+            "low_stock_threshold",
+            "is_active",
+            "is_featured",
+        ]
+
+
+class CategoryManagementForm(ModelForm):
+    class Meta:
+        model = Category
+        fields = ["name", "slug", "parent", "description", "is_active"]
+
+
+@staff_required
 def dashboard(request):
     """Admin analytics dashboard."""
-    # Date ranges
     today = timezone.now().date()
     thirty_days_ago = today - timedelta(days=30)
     seven_days_ago = today - timedelta(days=7)
 
-    # Sales metrics
     total_revenue = Order.objects.filter(
         status__in=["paid", "shipped", "delivered"]
     ).aggregate(total=Sum("total"))["total"] or 0
-
     monthly_revenue = Order.objects.filter(
         status__in=["paid", "shipped", "delivered"],
         created_at__date__gte=thirty_days_ago,
     ).aggregate(total=Sum("total"))["total"] or 0
-
     weekly_orders = Order.objects.filter(
         created_at__date__gte=seven_days_ago
     ).count()
 
-    # Product metrics
     total_products = Product.objects.filter(is_active=True).count()
     low_stock_products = Product.objects.filter(
         is_active=True, stock_quantity__lte=10
     ).count()
-
-    # AI insights
     total_activities = UserActivityLog.objects.count()
     popular_products = Product.objects.filter(is_active=True).order_by(
         "-view_count"
     )[:5]
-
-    # Recent orders
-    recent_orders = Order.objects.select_related("user").order_by(
-        "-created_at"
-    )[:10]
+    recent_orders = Order.objects.select_related("user").order_by("-created_at")[:10]
 
     context = {
         "total_revenue": total_revenue,
@@ -66,10 +119,8 @@ def dashboard(request):
     return render(request, "analytics/dashboard.html", context)
 
 
-@staff_member_required
+@staff_required
 def sales_report(request):
-    """Detailed sales report."""
-    # Daily sales for last 30 days
     thirty_days_ago = timezone.now() - timedelta(days=30)
     daily_sales = (
         Order.objects.filter(
@@ -78,12 +129,129 @@ def sales_report(request):
         )
         .annotate(date=TruncDate("created_at"))
         .values("date")
-        .annotate(
-            total_sales=Sum("total"),
-            order_count=Count("id"),
-        )
+        .annotate(total_sales=Sum("total"), order_count=Count("id"))
         .order_by("date")
     )
+    return render(request, "analytics/sales_report.html", {"daily_sales": daily_sales})
 
-    context = {"daily_sales": daily_sales}
-    return render(request, "analytics/sales_report.html", context)
+
+class ProductManagementListView(StaffRequiredMixin, ListView):
+    model = Product
+    template_name = "analytics/product_list.html"
+    context_object_name = "products"
+    paginate_by = 25
+
+    def get_queryset(self):
+        return Product.objects.select_related("category", "brand").order_by("-created_at")
+
+
+class ProductCreateView(StaffRequiredMixin, CreateView):
+    model = Product
+    form_class = ProductManagementForm
+    template_name = "analytics/product_form.html"
+    success_url = "/analytics/products/"
+
+    def form_valid(self, form):
+        messages.success(self.request, "Product created.")
+        return super().form_valid(form)
+
+
+class ProductUpdateView(StaffRequiredMixin, UpdateView):
+    model = Product
+    form_class = ProductManagementForm
+    template_name = "analytics/product_form.html"
+    success_url = "/analytics/products/"
+
+    def form_valid(self, form):
+        messages.success(self.request, "Product updated.")
+        return super().form_valid(form)
+
+
+class CategoryManagementListView(StaffRequiredMixin, ListView):
+    model = Category
+    template_name = "analytics/category_list.html"
+    context_object_name = "categories"
+
+    def get_queryset(self):
+        return Category.objects.order_by("name")
+
+
+class CategoryCreateView(StaffRequiredMixin, CreateView):
+    model = Category
+    form_class = CategoryManagementForm
+    template_name = "analytics/category_form.html"
+    success_url = "/analytics/categories/"
+
+    def form_valid(self, form):
+        messages.success(self.request, "Category created.")
+        return super().form_valid(form)
+
+
+class StockUpdateView(StaffRequiredMixin, TemplateView):
+    template_name = "analytics/stock_update.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["low_stock"] = Product.objects.filter(
+            is_active=True, stock_quantity__lte=10
+        ).order_by("stock_quantity")
+        return context
+
+    def post(self, request, *args, **kwargs):
+        pk = request.POST.get("product_id")
+        try:
+            quantity = int(request.POST.get("quantity", "0"))
+        except (TypeError, ValueError):
+            quantity = None
+        product = get_object_or_404(Product, pk=pk)
+        if quantity is not None and quantity >= 0:
+            product.stock_quantity = quantity
+            product.save(update_fields=["stock_quantity"])
+            messages.success(request, f"Stock updated for {product.name}.")
+        return redirect("analytics:stock_update")
+
+
+class OrderManagementListView(StaffRequiredMixin, ListView):
+    model = Order
+    template_name = "analytics/order_list.html"
+    context_object_name = "orders"
+    paginate_by = 25
+
+    def get_queryset(self):
+        queryset = Order.objects.select_related("user").order_by("-created_at")
+        status = self.request.GET.get("status")
+        if status:
+            queryset = queryset.filter(status=status)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["status_choices"] = Order.Status.choices
+        return context
+
+    def post(self, request, *args, **kwargs):
+        pk = request.POST.get("order_id")
+        new_status = request.POST.get("status")
+        order = get_object_or_404(Order, pk=pk)
+        if new_status in dict(Order.Status.choices):
+            order.status = new_status
+            order.save(update_fields=["status"])
+            messages.success(request, f"Order {order.id} updated.")
+        return redirect(request.get_full_path())
+
+
+class ReviewManagementListView(StaffRequiredMixin, ListView):
+    model = Review
+    template_name = "analytics/review_list.html"
+    context_object_name = "reviews"
+    paginate_by = 25
+
+    def get_queryset(self):
+        return Review.objects.select_related("product", "user").order_by("-created_at")
+
+    def post(self, request, *args, **kwargs):
+        pk = request.POST.get("review_id")
+        if request.POST.get("action") == "delete":
+            Review.objects.filter(pk=pk).delete()
+            messages.success(request, "Review deleted.")
+        return redirect("analytics:review_list")

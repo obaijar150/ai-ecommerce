@@ -1,0 +1,20 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Add Category — AI E-Commerce Admin{% endblock %}
+
+{% block store_content %}
+<section class="section" style="max-width:640px;">
+    <h1 class="section__title">Add Category</h1>
+    <form method="post" class="card" style="padding: var(--space-lg);">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            {{ field.label_tag }} {{ field }}
+            {% if field.errors %}<p class="text-error">{{ field.errors }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn--primary">Save Category</button>
+        <a href="{% url 'analytics:category_list' %}" class="btn btn--outline">Cancel</a>
+    </form>
+</section>
+{% endblock %}

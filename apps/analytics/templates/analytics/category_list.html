@@ -1,0 +1,28 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Category Management — AI E-Commerce Admin{% endblock %}
+
+{% block store_content %}
+{% include 'analytics/includes/admin_nav.html' %}
+<section class="section">
+    <h1 class="section__title">Category Management</h1>
+    <p><a href="{% url 'analytics:category_add' %}" class="btn btn--primary">Add Category</a></p>
+    <div class="card">
+        <table class="table">
+            <thead><tr><th>Name</th><th>Slug</th><th>Parent</th><th>Active</th></tr></thead>
+            <tbody>
+            {% for category in categories %}
+            <tr>
+                <td>{{ category.name }}</td>
+                <td>{{ category.slug }}</td>
+                <td>{{ category.parent.name|default:"—" }}</td>
+                <td>{% if category.is_active %}Yes{% else %}No{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4">No categories found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

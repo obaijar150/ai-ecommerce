@@ -11,6 +11,9 @@
                 Cart{% if cart_item_count %} <span class="badge badge--primary">{{ cart_item_count }}</span>{% endif %}
             </a>
             {% if user.is_authenticated %}
+                {% if user.is_staff %}
+                <a href="{% url 'analytics:dashboard' %}" class="nav__link">Admin</a>
+                {% endif %}
                 <a href="{% url 'orders:order_list' %}" class="nav__link">Orders</a>
                 <a href="{% url 'accounts:profile' %}" class="nav__link">Hello, {{ user.username }}</a>
                 <a href="{% url 'accounts:logout' %}" class="nav__link nav__link--cta" style="background: var(--color-gray-700);">Logout</a>
