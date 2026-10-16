@@ -19,71 +19,7 @@
 
     <div class="catalog-layout">
         <!-- Filters -->
-        <aside class="catalog-sidebar" aria-label="Product filters">
-            <div class="card" style="padding: var(--space-lg);">
-                <h2 style="font-size: 1.1rem; margin-bottom: var(--space-md);">Filters</h2>
-                <form method="get" class="filter-form">
-                    {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
-
-                    <div class="form-group">
-                        <label for="filter-category">Category</label>
-                        <select id="filter-category" name="category" class="filter-select">
-                            <option value="">All Categories</option>
-                            {% for cat in categories %}
-                            <option value="{{ cat.slug }}" {% if request.GET.category == cat.slug %}selected{% endif %}>
-                                {{ cat.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="filter-brand">Brand</label>
-                        <select id="filter-brand" name="brand" class="filter-select">
-                            <option value="">All Brands</option>
-                            {% for b in brands %}
-                            <option value="{{ b.slug }}" {% if request.GET.brand == b.slug %}selected{% endif %}>
-                                {{ b.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Price Range</label>
-                        <div class="filter-price-row">
-                            <input type="number" name="min_price" class="filter-input" placeholder="Min"
-                                   step="0.01" min="0" value="{{ request.GET.min_price }}">
-                            <input type="number" name="max_price" class="filter-input" placeholder="Max"
-                                   step="0.01" min="0" value="{{ request.GET.max_price }}">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="filter-sort">Sort By</label>
-                        <select id="filter-sort" name="sort" class="filter-select">
-                            <option value="newest" {% if active_sort == 'newest' %}selected{% endif %}>Newest First</option>
-                            <option value="price" {% if active_sort == 'price' %}selected{% endif %}>Price: Low to High</option>
-                            <option value="-price" {% if active_sort == '-price' %}selected{% endif %}>Price: High to Low</option>
-                            <option value="name" {% if active_sort == 'name' %}selected{% endif %}>Name: A–Z</option>
-                            <option value="-name" {% if active_sort == '-name' %}selected{% endif %}>Name: Z–A</option>
-                            <option value="rating" {% if active_sort == 'rating' %}selected{% endif %}>Highest Rated</option>
-                            <option value="popular" {% if active_sort == 'popular' %}selected{% endif %}>Most Viewed</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label style="display:flex; align-items:center; gap: var(--space-sm); cursor:pointer;">
-                            <input type="checkbox" name="in_stock" value="1" {% if request.GET.in_stock %}checked{% endif %}>
-                            <span>In Stock Only</span>
-                        </label>
-                    </div>
-
-                    <button type="submit" class="btn btn--primary btn--full">Apply Filters</button>
-                    <a href="{% url 'catalog:product_list' %}" class="btn btn--outline btn--full mt-1">Clear All</a>
-                </form>
-            </div>
-        </aside>
+        {% include 'catalog/includes/filters_sidebar.html' %}
 
         <!-- Results -->
         <div class="catalog-main">

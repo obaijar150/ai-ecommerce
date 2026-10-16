@@ -26,7 +26,10 @@
     </div>
     {% endif %}
 
-    <div class="catalog-toolbar">
+    <div class="catalog-layout">
+        {% include 'catalog/includes/filters_sidebar.html' %}
+        <div class="catalog-main">
+            <div class="catalog-toolbar">
         <span class="catalog-count">
             {{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }}
         </span>
@@ -66,6 +69,9 @@
         {% endif %}
     </nav>
     {% endif %}
+
+    </div>
+    </div>
 
     {% else %}
     <div class="empty-state card">

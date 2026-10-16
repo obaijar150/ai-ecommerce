@@ -417,3 +417,9 @@
         font-size: 1.75rem;
     }
 }
+
+/* ---------- Keep filters sidebar consistently visible ---------- */
+.catalog-sidebar { display: block !important; visibility: visible !important; }
+.catalog-layout { align-items: start; }
+@media (max-width: 900px) { .catalog-sidebar { position: static; margin-bottom: var(--space-lg); } }
+
