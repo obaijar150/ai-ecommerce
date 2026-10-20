@@ -25,7 +25,10 @@
                 <td>${{ product.price }}</td>
                 <td>{{ product.stock_quantity }}</td>
                 <td>{% if product.is_active %}Yes{% else %}No{% endif %}</td>
-                <td><a href="{% url 'analytics:product_edit' product.pk %}" class="btn btn--outline btn--sm">Edit</a></td>
+                <td class="table__actions">
+                    <a href="{% url 'analytics:product_edit' product.pk %}" class="btn btn--outline btn--sm">Edit</a>
+                    <a href="{% url 'analytics:product_delete' product.pk %}" class="btn btn--danger btn--sm">Delete</a>
+                </td>
             </tr>
             {% empty %}
             <tr><td colspan="7">No products found.</td></tr>

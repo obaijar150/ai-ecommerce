@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.generic import (
     CreateView,
+    DeleteView,
     ListView,
     TemplateView,
     UpdateView,
@@ -207,6 +208,32 @@ class ProductUpdateView(StaffRequiredMixin, UpdateView):
                 self.object, image, form.cleaned_data.get("image_alt_text", "")
             )
         messages.success(self.request, "Product updated.")
+        return response
+
+
+class ProductDeleteView(StaffRequiredMixin, DeleteView):
+    model = Product
+    template_name = "analytics/product_confirm_delete.html"
+    success_url = "/analytics/products/"
+
+    def form_valid(self, form):
+        product = self.get_object()
+        # Capture image file references before the rows are cascaded away.
+        files = [
+            (image.image.storage, image.image.name)
+            for image in product.images.all()
+            if image.image and image.image.name
+        ]
+        response = super().form_valid(form)
+        for storage, name in files:
+            try:
+                if storage.exists(name):
+                    storage.delete(name)
+            except OSError:
+                # Database deletion already succeeded; a missing file must not
+                # turn a successful delete into a 500.
+                pass
+        messages.success(self.request, f'Product "{product.name}" deleted.')
         return response
 
 

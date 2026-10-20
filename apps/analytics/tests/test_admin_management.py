@@ -167,6 +167,85 @@ class ProductManagementTests(TestCase):
         self.assertContains(response, 'type="file"')
         self.assertContains(response, 'name="image"')
 
+    def test_product_list_shows_delete_link(self):
+        """Each product row links to its delete confirmation page."""
+        product = ProductFactory()
+        response = self.client.get(reverse("analytics:product_list"))
+        self.assertContains(
+            response,
+            reverse("analytics:product_delete", kwargs={"pk": product.pk}),
+        )
+
+
+class ProductDeleteTests(TestCase):
+    """Staff product deletion flow."""
+
+    def setUp(self):
+        self.client = Client()
+        self.staff = UserFactory(is_staff=True, password=None)
+        self.user = UserFactory(password=None)
+
+    def test_confirmation_page_renders(self):
+        """Staff see a confirmation page for the product."""
+        self.client.force_login(self.staff)
+        product = ProductFactory()
+        response = self.client.get(
+            reverse("analytics:product_delete", kwargs={"pk": product.pk})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, product.name)
+
+    def test_get_does_not_delete(self):
+        """A GET on the delete URL only shows the confirmation form."""
+        self.client.force_login(self.staff)
+        product = ProductFactory()
+        self.client.get(reverse("analytics:product_delete", kwargs={"pk": product.pk}))
+        self.assertTrue(Product.objects.filter(pk=product.pk).exists())
+
+    def test_delete_product(self):
+        """Posting the confirmation form deletes the product."""
+        self.client.force_login(self.staff)
+        product = ProductFactory()
+        response = self.client.post(
+            reverse("analytics:product_delete", kwargs={"pk": product.pk})
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Product.objects.filter(pk=product.pk).exists())
+
+    def test_delete_removes_image_file(self):
+        """Deleting a product also removes its stored image files."""
+        self.client.force_login(self.staff)
+        product = ProductFactory()
+        image = ProductImage.objects.create(
+            product=product, image=make_test_image(), is_primary=True
+        )
+        storage, name = image.image.storage, image.image.name
+        self.assertTrue(storage.exists(name))
+
+        self.client.post(
+            reverse("analytics:product_delete", kwargs={"pk": product.pk})
+        )
+        self.assertFalse(storage.exists(name))
+
+    def test_non_staff_cannot_delete(self):
+        """Non-staff users get 403 and the product survives."""
+        self.client.force_login(self.user)
+        product = ProductFactory()
+        response = self.client.post(
+            reverse("analytics:product_delete", kwargs={"pk": product.pk})
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Product.objects.filter(pk=product.pk).exists())
+
+    def test_anonymous_cannot_delete(self):
+        """Anonymous users are redirected and the product survives."""
+        product = ProductFactory()
+        response = self.client.post(
+            reverse("analytics:product_delete", kwargs={"pk": product.pk})
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Product.objects.filter(pk=product.pk).exists())
+
 
 class CategoryManagementTests(TestCase):
     """Staff category create flow."""

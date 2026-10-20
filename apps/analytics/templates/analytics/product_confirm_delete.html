@@ -1,0 +1,33 @@
+{% extends 'base_store.html' %}
+
+{% block title %}Delete Product — AI E-Commerce Admin{% endblock %}
+
+{% block store_content %}
+{% include 'analytics/includes/admin_nav.html' %}
+<section class="section" style="max-width: 640px;">
+    <h1 class="section__title">Delete Product</h1>
+
+    <div class="card" style="padding: var(--space-lg);">
+        <div class="message-banner message-banner--danger" role="alert">
+            This action cannot be undone. The product and its images, reviews,
+            wishlist entries and recommendations will be removed.
+        </div>
+
+        <div class="delete-summary">
+            {% if object.primary_image %}
+            <img src="{{ object.primary_image.image.url }}" alt="{{ object.primary_image.alt_text|default:object.name }}" class="thumb thumb--lg">
+            {% endif %}
+            <div>
+                <p class="delete-summary__name">{{ object.name }}</p>
+                <p class="text-muted">SKU: {{ object.sku }}</p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--danger">Yes, delete this product</button>
+            <a href="{% url 'analytics:product_list' %}" class="btn btn--outline">Cancel</a>
+        </form>
+    </div>
+</section>
+{% endblock %}

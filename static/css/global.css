@@ -738,6 +738,40 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 .thumb--empty { font-size: 0.9rem; }
+.thumb--lg { width: 96px; height: 96px; }
+
+.table__actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.message-banner {
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    border-left: 4px solid;
+    margin-bottom: var(--space-lg);
+    font-size: 0.9rem;
+}
+
+.message-banner--danger {
+    background: var(--color-error-bg);
+    color: var(--color-error);
+    border-color: var(--color-error);
+}
+
+.delete-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.delete-summary__name {
+    font-size: 1.1rem;
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+}
 
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 768px) {
