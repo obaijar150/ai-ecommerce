@@ -10,6 +10,8 @@ from typing import Any
 from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
 
 from apps.ai_engine.services.ai_integration import (
     ai_search,
@@ -22,12 +24,16 @@ from apps.ai_engine.services.ai_integration import (
 class AISearchAPIView(View):
     """Natural-language product search with hard filters and semantic ranking."""
 
+    @method_decorator(ratelimit(key='ip', rate='30/m', method='GET', block=True))
     def get(self, request):
         query = request.GET.get("q") or request.GET.get("query") or ""
+        if len(query) > 200:
+            return JsonResponse({"error": "query_too_long"}, status=400)
         try:
             limit = int(request.GET.get("limit", 24))
         except (TypeError, ValueError):
             limit = 24
+        limit = max(1, min(limit, 50))
         constraints, results = ai_search(query, limit=limit)
         return JsonResponse(
             {
@@ -55,6 +61,7 @@ class AISearchAPIView(View):
 class AIRecommendationsAPIView(View):
     """Authenticated, explainable product recommendations."""
 
+    @method_decorator(ratelimit(key='ip', rate='30/m', method='GET', block=True))
     def get(self, request):
         user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
         limit = 8
@@ -62,6 +69,7 @@ class AIRecommendationsAPIView(View):
             limit = int(request.GET.get("limit", 8))
         except (TypeError, ValueError):
             pass
+        limit = max(1, min(limit, 20))
         results = explained_recommendations(user, limit=limit)
         return JsonResponse({"recommendations": results, "user_authenticated": bool(user)})
 
@@ -69,6 +77,7 @@ class AIRecommendationsAPIView(View):
 class AIReviewSummaryAPIView(View):
     """Cached, evidence-grounded review summary for a product."""
 
+    @method_decorator(ratelimit(key='ip', rate='60/m', method='GET', block=True))
     def get(self, request, product_id: int):
         refresh = request.GET.get("refresh") in {"1", "true", "yes"}
         try:
@@ -81,6 +90,7 @@ class AIReviewSummaryAPIView(View):
 class AISupportAPIView(View):
     """Permissions-aware customer support RAG endpoint."""
 
+    @method_decorator(ratelimit(key='ip', rate='10/m', method='POST', block=True))
     def post(self, request):
         try:
             body = json.loads(request.body or b"{}")
@@ -89,12 +99,15 @@ class AISupportAPIView(View):
         query = (body.get("query") or request.POST.get("query") or "").strip()
         if not query:
             return JsonResponse({"error": "empty_query"}, status=400)
+        if len(query) > 500:
+            return JsonResponse({"error": "query_too_long"}, status=400)
         user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
         result = support_answer(query, user=user)
         return JsonResponse(result)
 
 
 @csrf_exempt
+@ratelimit(key='ip', rate='30/m', method='POST', block=True)
 def ai_search_post(request):
     # Thin wrapper so the endpoint also accepts POST bodies.
     if request.method != "POST":
@@ -104,10 +117,13 @@ def ai_search_post(request):
     except json.JSONDecodeError:
         body = {}
     query = (body.get("query") or body.get("q") or "").strip()
+    if len(query) > 200:
+        return JsonResponse({"error": "query_too_long"}, status=400)
     try:
         limit = int(body.get("limit", 24))
     except (TypeError, ValueError):
         limit = 24
+    limit = max(1, min(limit, 50))
     constraints, results = ai_search(query, limit=limit)
     return JsonResponse(
         {

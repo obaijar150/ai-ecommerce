@@ -23,6 +23,8 @@ from django.utils.decorators import method_decorator
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django_ratelimit.decorators import ratelimit
+from django_ratelimit.decorators import ratelimit
 
 from .forms import (
     AddressForm,
@@ -67,6 +69,10 @@ class CustomLoginView(LoginView):
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
 
+    @method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True))
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         messages.success(self.request, f"Welcome back, {form.get_user().username}!")
         return super().form_valid(form)
@@ -97,6 +103,10 @@ class CustomPasswordResetView(PasswordResetView):
     subject_template_name = "emails/password_reset_subject.txt"
     success_url = reverse_lazy("accounts:password_reset_done")
 
+    @method_decorator(ratelimit(key='ip', rate='3/m', method='POST', block=True))
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
 
 class CustomPasswordResetDoneView(PasswordResetDoneView):
     """Password reset email sent confirmation."""
@@ -110,6 +120,10 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = "accounts/password_reset_confirm.html"
     form_class = CustomSetPasswordForm
     success_url = reverse_lazy("accounts:password_reset_complete")
+
+    @method_decorator(ratelimit(key='ip', rate='3/m', method='POST', block=True))
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):

@@ -1,20 +1,23 @@
 """
 Development settings — overrides base.py for local development.
-Uses SQLite by default. To use PostgreSQL, start Docker Compose first.
+
+PostgreSQL is the default database (start it with ``docker compose up -d db``).
+Set ``USE_SQLITE=1`` only for a quick offline fallback; tests and the project
+are validated against PostgreSQL.
 """
 
 from .base import *  # noqa: F401,F403
 
 DEBUG = True
 
-# Use SQLite for quick local development (no PostgreSQL required)
-# To use PostgreSQL: docker-compose up -d db redis
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# PostgreSQL comes from base.py. Opt into SQLite explicitly when needed.
+if env.bool("USE_SQLITE", default=False):  # noqa: F405
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
 
 ALLOWED_HOSTS = ["*"]
 

@@ -51,12 +51,18 @@ class ProductSearchView(ListView):
 
     def _full_text_search(self, query: str):
         """Run a ranked PostgreSQL full-text search."""
-        search_vector = SearchVector("name", weight="A") + SearchVector(
-            "description", weight="B"
+        search_vector = (
+            SearchVector("name", weight="A")
+            + SearchVector("description", weight="B")
+            + SearchVector("sku", weight="B")
+            + SearchVector("brand__name", weight="C")
+            + SearchVector("category__name", weight="C")
         )
         search_query = SearchQuery(query, config="english")
         return (
             Product.objects.active()
+            .select_related("category", "brand")
+            .prefetch_related("images")
             .annotate(rank=SearchRank(search_vector, search_query))
             .filter(rank__gt=0)
             .order_by("-rank")

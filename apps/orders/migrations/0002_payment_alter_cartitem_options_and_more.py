@@ -78,11 +78,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='order',
-            name='id',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False),
-        ),
-        migrations.AlterField(
-            model_name='order',
             name='payment_method',
             field=models.CharField(choices=[('mock_card', 'Mock Card'), ('cash_on_delivery', 'Cash on Delivery')], default='mock_card', max_length=50),
         ),

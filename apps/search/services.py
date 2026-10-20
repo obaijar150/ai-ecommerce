@@ -43,11 +43,7 @@ class SearchService:
 
         if not _is_postgres():
             # Portable fallback for dev/test (SQLite).
-            qs = (
-                Product.objects.filter(is_active=True, name__icontains=corrected)
-                | Product.objects.filter(is_active=True, description__icontains=corrected)
-            )
-            qs = qs.distinct()
+            qs = Product.objects.filter(is_active=True).search(corrected)
             if limit:
                 qs = qs[:limit]
             return qs
@@ -63,6 +59,8 @@ class SearchService:
         search_vector = (
             SearchVector("name", weight="A")
             + SearchVector("description", weight="B")
+            + SearchVector("sku", weight="B")
+            + SearchVector("brand__name", weight="C")
             + SearchVector("category__name", weight="C")
         )
         search_query = SearchQuery(corrected, config="english")
@@ -78,6 +76,7 @@ class SearchService:
             .annotate(
                 similarity=TrigramSimilarity("name", corrected)
                 + TrigramSimilarity("description", corrected)
+                + TrigramSimilarity("brand__name", corrected)
             )
             .filter(similarity__gt=0.1)
             .order_by("-similarity")[:50]

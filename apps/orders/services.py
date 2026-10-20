@@ -116,9 +116,15 @@ class CartService:
     @transaction.atomic
     def update_quantity(request, item_id: int, quantity: int) -> None:
         """Set the quantity of a cart line; removes it when quantity is 0."""
-        item = CartService.get_cart_items(request).select_for_update().filter(
-            pk=item_id
-        ).first()
+        item = (
+            CartService.get_cart_items(request)
+            # ``get_cart_items`` joins the nullable ``product__brand`` relation.
+            # PostgreSQL refuses FOR UPDATE on the nullable side of an outer
+            # join, so lock only the cart-item row itself.
+            .select_for_update(of=("self",))
+            .filter(pk=item_id)
+            .first()
+        )
         if item is None:
             raise OrderError("That cart item no longer exists.")
 
