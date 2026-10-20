@@ -724,6 +724,21 @@ img { max-width: 100%; height: auto; display: block; }
 
 .text-error { color: var(--color-error); font-size: 0.85rem; }
 
+.thumb {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-gray-100);
+    background: var(--color-gray-100);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gray-500);
+}
+
+.thumb--empty { font-size: 0.9rem; }
+
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 768px) {
     .nav { padding: 0 var(--space-md); }

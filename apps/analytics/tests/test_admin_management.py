@@ -11,11 +11,15 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from apps.accounts.tests.factories import UserFactory
-from apps.catalog.tests.factories import CategoryFactory, ProductFactory
+from apps.catalog.tests.factories import (
+    CategoryFactory,
+    ProductFactory,
+    make_test_image,
+)
 from apps.orders.tests.factories import OrderFactory
 from apps.reviews.tests.factories import ReviewFactory
 
-from apps.catalog.models import Product
+from apps.catalog.models import Product, ProductImage
 from apps.orders.models import Order
 from apps.reviews.models import Review
 
@@ -110,6 +114,58 @@ class ProductManagementTests(TestCase):
         self.assertEqual(response.status_code, 302)
         product.refresh_from_db()
         self.assertEqual(product.stock_quantity, 42)
+
+    def test_create_product_with_image(self):
+        """Uploading an image stores it as the product's primary image."""
+        response = self.client.post(
+            reverse("analytics:product_add"),
+            {
+                "name": "Imaged Widget",
+                "description": "Comes with a picture.",
+                "price": "9.99",
+                "sku": "ADMIN-IMG-1",
+                "stock_quantity": 3,
+                "low_stock_threshold": 5,
+                "is_active": "on",
+                "image": make_test_image(),
+                "image_alt_text": "A small widget",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        product = Product.objects.get(sku="ADMIN-IMG-1")
+        image = product.images.get()
+        self.assertTrue(image.is_primary)
+        self.assertEqual(image.alt_text, "A small widget")
+
+    def test_edit_product_replaces_primary_image(self):
+        """A new upload becomes the sole primary image."""
+        product = ProductFactory()
+        ProductImage.objects.create(
+            product=product, image=make_test_image(), is_primary=True
+        )
+        response = self.client.post(
+            reverse("analytics:product_edit", kwargs={"pk": product.pk}),
+            {
+                "name": product.name,
+                "description": product.description,
+                "price": str(product.price),
+                "sku": product.sku,
+                "stock_quantity": product.stock_quantity,
+                "low_stock_threshold": product.low_stock_threshold,
+                "is_active": "on",
+                "image": make_test_image(color=(10, 200, 90)),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        product.refresh_from_db()
+        self.assertEqual(product.images.filter(is_primary=True).count(), 1)
+        self.assertEqual(product.images.count(), 2)
+
+    def test_product_form_has_image_field(self):
+        """The product form exposes an image upload control."""
+        response = self.client.get(reverse("analytics:product_add"))
+        self.assertContains(response, 'type="file"')
+        self.assertContains(response, 'name="image"')
 
 
 class CategoryManagementTests(TestCase):

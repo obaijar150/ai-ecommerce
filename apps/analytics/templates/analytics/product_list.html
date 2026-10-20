@@ -9,10 +9,17 @@
     <p><a href="{% url 'analytics:product_add' %}" class="btn btn--primary">Add Product</a></p>
     <div class="card">
         <table class="table">
-            <thead><tr><th>Name</th><th>SKU</th><th>Price</th><th>Stock</th><th>Active</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Image</th><th>Name</th><th>SKU</th><th>Price</th><th>Stock</th><th>Active</th><th>Actions</th></tr></thead>
             <tbody>
             {% for product in products %}
             <tr>
+                <td>
+                    {% if product.primary_image %}
+                    <img src="{{ product.primary_image.image.url }}" alt="{{ product.primary_image.alt_text|default:product.name }}" class="thumb">
+                    {% else %}
+                    <span class="thumb thumb--empty" aria-hidden="true">—</span>
+                    {% endif %}
+                </td>
                 <td>{{ product.name }}</td>
                 <td>{{ product.sku }}</td>
                 <td>${{ product.price }}</td>
@@ -21,7 +28,7 @@
                 <td><a href="{% url 'analytics:product_edit' product.pk %}" class="btn btn--outline btn--sm">Edit</a></td>
             </tr>
             {% empty %}
-            <tr><td colspan="6">No products found.</td></tr>
+            <tr><td colspan="7">No products found.</td></tr>
             {% endfor %}
             </tbody>
         </table>

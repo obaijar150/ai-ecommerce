@@ -5,9 +5,10 @@ Analytics views: admin dashboard with sales insights and staff-only management.
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.validators import FileExtensionValidator
+from django import forms
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncDate
-from django.forms import ModelForm
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -21,7 +22,13 @@ from django.views.generic import (
 from datetime import timedelta
 from functools import wraps
 
-from apps.catalog.models import Brand, Category, Product
+from apps.catalog.forms import CategoryForm, ProductForm
+from apps.catalog.models import Category, Product, ProductImage
+from apps.catalog.validators import (
+    ALLOWED_IMAGE_EXTENSIONS,
+    validate_image_content_type,
+    validate_image_size,
+)
 from apps.orders.models import Order
 from apps.reviews.models import Review
 from apps.ai_engine.models import UserActivityLog
@@ -53,29 +60,53 @@ class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         return HttpResponseForbidden("Staff access only.")
 
 
-class ProductManagementForm(ModelForm):
-    class Meta:
-        model = Product
-        fields = [
-            "name",
-            "slug",
-            "category",
-            "brand",
-            "description",
-            "price",
-            "sale_price",
-            "sku",
-            "stock_quantity",
-            "low_stock_threshold",
-            "is_active",
-            "is_featured",
-        ]
+class ProductAdminForm(ProductForm):
+    """Staff product form that also accepts a primary image upload.
+
+    Extends the shared :class:`apps.catalog.forms.ProductForm` (so all SKU,
+    price and specification validation applies) with an optional image field.
+    Uploaded images are stored as :class:`ProductImage` rows, matching how the
+    rest of the catalogue handles product media.
+    """
+
+    image = forms.ImageField(
+        required=False,
+        label="Primary image",
+        help_text="JPEG, PNG or WebP. Validated for size and real content type.",
+        validators=[
+            FileExtensionValidator(allowed_extensions=ALLOWED_IMAGE_EXTENSIONS),
+            validate_image_size,
+            validate_image_content_type,
+        ],
+    )
+    image_alt_text = forms.CharField(
+        required=False,
+        max_length=200,
+        label="Image alt text",
+        help_text="Describes the image for screen readers and search engines.",
+    )
 
 
-class CategoryManagementForm(ModelForm):
-    class Meta:
-        model = Category
-        fields = ["name", "slug", "parent", "description", "is_active"]
+def _store_primary_image(product: Product, image, alt_text: str = "") -> None:
+    """Persist an uploaded image as ``product``'s new primary image."""
+    product.images.filter(is_primary=True).update(is_primary=False)
+    ProductImage.objects.create(
+        product=product,
+        image=image,
+        alt_text=alt_text or product.name,
+        is_primary=True,
+    )
+
+
+class CategoryAdminForm(CategoryForm):
+    """Staff category form with a sensible ``sort_order`` default."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["sort_order"].required = False
+
+    def clean_sort_order(self):
+        return self.cleaned_data.get("sort_order") or 0
 
 
 @staff_required
@@ -147,24 +178,36 @@ class ProductManagementListView(StaffRequiredMixin, ListView):
 
 class ProductCreateView(StaffRequiredMixin, CreateView):
     model = Product
-    form_class = ProductManagementForm
+    form_class = ProductAdminForm
     template_name = "analytics/product_form.html"
     success_url = "/analytics/products/"
 
     def form_valid(self, form):
+        response = super().form_valid(form)
+        image = form.cleaned_data.get("image")
+        if image:
+            _store_primary_image(
+                self.object, image, form.cleaned_data.get("image_alt_text", "")
+            )
         messages.success(self.request, "Product created.")
-        return super().form_valid(form)
+        return response
 
 
 class ProductUpdateView(StaffRequiredMixin, UpdateView):
     model = Product
-    form_class = ProductManagementForm
+    form_class = ProductAdminForm
     template_name = "analytics/product_form.html"
     success_url = "/analytics/products/"
 
     def form_valid(self, form):
+        response = super().form_valid(form)
+        image = form.cleaned_data.get("image")
+        if image:
+            _store_primary_image(
+                self.object, image, form.cleaned_data.get("image_alt_text", "")
+            )
         messages.success(self.request, "Product updated.")
-        return super().form_valid(form)
+        return response
 
 
 class CategoryManagementListView(StaffRequiredMixin, ListView):
@@ -178,7 +221,7 @@ class CategoryManagementListView(StaffRequiredMixin, ListView):
 
 class CategoryCreateView(StaffRequiredMixin, CreateView):
     model = Category
-    form_class = CategoryManagementForm
+    form_class = CategoryAdminForm
     template_name = "analytics/category_form.html"
     success_url = "/analytics/categories/"
 

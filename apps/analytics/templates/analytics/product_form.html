@@ -3,14 +3,27 @@
 {% block title %}Product Form — AI E-Commerce Admin{% endblock %}
 
 {% block store_content %}
-<section class="section" style="max-width:760px;">
+{% include 'analytics/includes/admin_nav.html' %}
+<section class="section" style="max-width: 760px;">
     <h1 class="section__title">{% if object %}Edit Product{% else %}Add Product{% endif %}</h1>
-    <form method="post" class="card" style="padding: var(--space-lg);">
+
+    {% if object and object.primary_image %}
+    <div class="card" style="margin-bottom: var(--space-lg);">
+        <h2 class="section__subtitle">Current primary image</h2>
+        <img src="{{ object.primary_image.image.url }}" alt="{{ object.primary_image.alt_text|default:object.name }}" style="max-width: 240px; border-radius: var(--radius-md);">
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="card" style="padding: var(--space-lg);">
         {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="messages__item messages__item--error">{{ form.non_field_errors }}</div>
+        {% endif %}
         {% for field in form %}
         <div class="form-group">
             {{ field.label_tag }} {{ field }}
-            {% if field.errors %}<p class="text-error">{{ field.errors }}</p>{% endif %}
+            {% if field.help_text %}<small class="text-muted">{{ field.help_text }}</small>{% endif %}
+            {% if field.errors %}<p class="text-error">{{ field.errors|striptags }}</p>{% endif %}
         </div>
         {% endfor %}
         <button type="submit" class="btn btn--primary">Save Product</button>
