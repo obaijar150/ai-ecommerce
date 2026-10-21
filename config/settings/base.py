@@ -221,9 +221,11 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
 # ── Redis Cache ──────────────────────────────────────────────
+# Redis is optional: if it is unavailable the backend transparently falls
+# back to an in-process cache so API throttling never turns into a 500.
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "BACKEND": "config.cache.ResilientRedisCache",
         "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
         "TIMEOUT": 300,
         "OPTIONS": {

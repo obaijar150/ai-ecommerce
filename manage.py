@@ -6,6 +6,9 @@ import sys
 
 def main():
     """Run administrative tasks."""
+    # ``config.settings`` re-exports the development configuration, so the
+    # project runs out of the box. Production must set
+    # ``DJANGO_SETTINGS_MODULE=config.settings.production`` explicitly.
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     try:
         from django.core.management import execute_from_command_line

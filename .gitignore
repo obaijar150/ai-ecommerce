@@ -73,3 +73,11 @@ apps/ai_engine/ml/**/*.joblib
 
 # Node (if any tooling)
 node_modules/
+
+# Local run artifacts
+server.log
+server.err
+pytest_out.txt
+pytest_err.txt
+checkout_cart.txt
+checkout_cart_err.txt

@@ -15,7 +15,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("apps.catalog.urls", namespace="catalog")),
     path("accounts/", include("apps.accounts.urls", namespace="accounts")),
-    path("orders/", include("apps.orders.urls", namespace="orders")),
+    # Mounted at the root so the public URLs match the documented layout:
+    # /cart/, /checkout/, /orders/ and /orders/<uuid>/.
+    path("", include("apps.orders.urls", namespace="orders")),
     path("reviews/", include("apps.reviews.urls", namespace="reviews")),
     path("search/", include("apps.search.urls", namespace="search")),
     path("chat/", include("apps.ai_engine.urls", namespace="ai_engine")),
